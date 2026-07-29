@@ -1,6 +1,6 @@
 # Mailcow Roundcube Extension
 
-[![License](https://img.shields.io/github/license/motwok/mailcow-roundcube)](./LICENSE.txt)
+[![License](https://img.shields.io/github/license/motwok/mailcow-roundcube)](./LICENSE)
 ![Status](https://img.shields.io/badge/status-WIP-orange)
 ![Docker Compose](https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white)
 ![Bash](https://img.shields.io/badge/shell-bash-121011?logo=gnu-bash&logoColor=white)
