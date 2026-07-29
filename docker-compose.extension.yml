@@ -1,0 +1,44 @@
+# Copyright (c) 2026 Emmo "mo2000" Emminghaus mo2000 at mo2000 dot de
+# SPDX-License-Identifier: AGPL-3.0-or-later
+services:
+
+  roundcube-mailcow:
+    image: roundcube/roundcubemail:latest
+    container_name: mailcowdockerized-roundcube-mailcow-1
+    environment:
+      - TZ=${TZ}
+      - ROUNDCUBEMAIL_DB_TYPE=mysql
+      - ROUNDCUBEMAIL_DB_HOST=mysql
+      - ROUNDCUBEMAIL_DB_PORT=3306
+      - ROUNDCUBEMAIL_DB_NAME=roundcube
+      - ROUNDCUBEMAIL_DB_USER=roundcube
+      - ROUNDCUBEMAIL_DB_PASSWORD=${ROUNDCUBE_DB_PASSWORD}
+      - ROUNDCUBEMAIL_DEFAULT_HOST=ssl://dovecot
+      - ROUNDCUBEMAIL_DEFAULT_PORT=993
+      - ROUNDCUBEMAIL_SMTP_SERVER=tls://postfix
+      - ROUNDCUBEMAIL_SMTP_PORT=587
+      - ROUNDCUBEMAIL_INSTALL_PLUGINS=1
+    dns:
+      - ${IPV4_NETWORK:-172.22.1}.254
+    volumes:
+      - ./mailcow-roundcube/data/conf/roundcube/config:/var/roundcube/config:ro,Z
+      - ./mailcow-roundcube/data/assets/web/roundcube/plugins/mailcow_link:/var/roundcube/plugins/mailcow_link:ro,Z
+      - ./mailcow-roundcube/data/assets/web/roundcube/plugins/simple_smime/simple_smime:/var/roundcube/plugins/simple_smime:ro,Z
+      - ./mailcow-roundcube/data/logs/roundcube:/var/roundcube/logs:Z
+      - ./mailcow-roundcube/data/temp/roundcube:/var/roundcube/temp:Z
+    labels:
+      - "com.docker.compose.service=roundcube"
+    restart: always
+    networks:
+      mailcow-network:
+        aliases:
+          - roundcube
+
+  nginx-mailcow:
+    depends_on:
+      - roundcube-mailcow
+    volumes:
+      - ./mailcow-roundcube/data/conf/nginx/site.roundcube.custom:/etc/nginx/conf.d/site.roundcube.custom:ro,Z
+      - ./mailcow-roundcube/data/conf/nginx/site.appselectpr.custorm:/etc/nginx/conf.d/site.appselectpr.custorm:ro,Z
+      - ./mailcow-roundcube/data/assets/nginx/appselect.htm:/web/appselect.htm:ro,Z
+     

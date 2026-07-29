@@ -1,0 +1,13 @@
+# Main Roundcube proxy routing
+location ^~ /roundcube/ {
+    proxy_pass http://roundcube:80/;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_connect_timeout 75;
+    proxy_send_timeout 3650;
+    proxy_read_timeout 3650;
+    proxy_buffers 64 512k;
+    client_max_body_size 100m;
+}

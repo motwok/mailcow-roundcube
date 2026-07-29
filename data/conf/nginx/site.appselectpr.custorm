@@ -1,0 +1,11 @@
+location = /webmail {
+    alias /web/;
+    index appselector.html;
+    try_files $uri $uri/ /appselector.html;
+}
+
+location = /SOGo/so {
+    alias /web/;
+    index appselector.html;
+    try_files $uri $uri/ /appselector.html;
+}

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webmail Auswahl</title>
+    <style>
+        :root { --primary-color: #007bff; --bg-color: #f5f5f5; --card-bg: #ffffff; --text-color: #333333; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--bg-color); margin: 0; }
+        .container { text-align: center; background: var(--card-bg); padding: 40px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); max-width: 420px; width: 100%; box-sizing: border-box; }
+        h2 { margin-top: 0; color: var(--text-color); font-size: 22px; }
+        button { font-size: 16px; font-weight: 600; padding: 14px 28px; margin: 10px; cursor: pointer; border: none; border-radius: 6px; background: var(--primary-color); color: white; transition: background 0.2s; }
+        button:hover { background: #0056b3; }
+        .checkbox-container { margin-top: 24px; font-size: 14px; color: #666; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .hidden { display: none !important; }
+    </style>
+    <script>
+        window.onload = function() {
+            const currentPath = window.location.pathname.toLowerCase();
+
+            // FALL 1: /webmail aufgerufen (Reset)
+            if (currentPath.includes('/webmail')) {
+                localStorage.removeItem('webmail_choice');
+                window.location.href = '/SOGo/so';
+                return;
+            }
+
+            // FALL 2: /SOGo/so aufgerufen (Prüfen ob Auswahl existiert)
+            const targetPath = localStorage.getItem('webmail_choice');
+            if (targetPath) {
+                window.location.href = targetPath;
+            } else {
+                // Keine Auswahl -> Menü anzeigen
+                document.getElementById('selection-view').classList.remove('hidden');
+            }
+        };
+
+        function selectWebmail(choice) {
+            const remember = document.getElementById('remember').checked;
+            
+            if (choice === 'sogo') {
+                // Der abschließende Slash umgeht die exakte Nginx-Regel komplett!
+                const path = '/SOGo/so/'; 
+                if (remember) localStorage.setItem('webmail_choice', path);
+                window.location.href = path;
+            } else if (choice === 'roundcube') {
+                const path = '/roundcube/';
+                if (remember) localStorage.setItem('webmail_choice', path);
+                window.location.href = path;
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="selection-view" class="container hidden">
+        <h2>Webmail Oberfläche</h2>
+        <p style="color: #666; font-size: 14px; margin-bottom: 25px;">Bitte wählen Sie Ihr bevorzugtes Interface:</p>
+        <button onclick="selectWebmail('sogo')">SOGo Webmail</button>
+        <button onclick="selectWebmail('roundcube')">Roundcube</button>
+        
+        <div class="checkbox-container">
+            <input type="checkbox" id="remember" checked>
+            <label for="remember">Auswahl für dieses Gerät merken</label>
+        </div>
+    </div>
+</body>
+</html>
