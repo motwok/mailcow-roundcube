@@ -1,0 +1,74 @@
+# Copyright (c) 2026 Emmo "mo2000" Emminghaus mo2000 at mo2000 dot de
+# SPDX-License-Identifier: AGPL-3.0-or-later
+services:
+
+  roundcube-mailcow:
+    image: roundcube/roundcubemail:latest
+    #container_name: mailcowdockerized-roundcube-mailcow-1
+    hostname: roundcube
+    environment:
+      - TZ=${TZ}
+      - ROUNDCUBEMAIL_DB_PASSWORD=${ROUNDCUBEMAIL_DB_PASSWORD}
+      - ROUNDCUBEMAIL_DEFAULT_HOST=ssl://dovecot
+      - ROUNDCUBEMAIL_DEFAULT_PORT=993
+      - ROUNDCUBEMAIL_SMTP_SERVER=tls://postfix
+      - ROUNDCUBEMAIL_SMTP_PORT=587
+      - ROUNDCUBEMAIL_REQUEST_PATH=/roundcube
+      - ROUNDCUBEMAIL_INSTALL_PLUGINS=1
+      - ROUNDCUBEMAIL_COMPOSER_PLUGINS=kolab/calendar,kolab/tasklist,johndoh/contextmenu
+        #roundcube/carddav,
+        #,sblaisot/html5_notifier
+
+      - ROUNDCUBEMAIL_PLUGINS=
+          markasjunk,
+          managesieve,
+          zipdownload,
+          archive,
+          filesystem_attachments,
+          subscriptions_option,
+          vcard_attachments,
+          emoticons,
+          eniugma,
+          calendar,
+          tasklist,
+          contextmenu,
+          mailcow,
+          simple_smime
+      #carddav,
+      #html5_notifier,
+
+      - ROUNDCUBEMAIL_CLIENT_ID=${ROUNDCUBEMAIL_CLIENT_ID:-}
+      - ROUNDCUBEMAIL_CLIENT_SECRET=${ROUNDCUBEMAIL_CLIENT_SECRET:-}
+      - MAILCOW_HOSTNAME=${MAILCOW_HOSTNAME:-mailcow}
+      - IPV4_NETWORK=${IPV4_NETWORK:-172.22.1}.0/24
+      - IPV6_NETWORK=${IPV6_NETWORK:-fd00:dead:beef:cafe::}/64
+    dns:
+      - ${IPV4_NETWORK:-172.22.1}.254
+    volumes:
+      - ./mailcow-roundcube/data/conf/roundcube/config.mailcow.inc.php:/var/roundcube/config/config.mailcow.inc.php:ro,Z
+      - ./mailcow-roundcube/data/assets/roundcube/plugins:/var/www/html/plugins:Z
+      #- ./mailcow-roundcube/data/assets/roundcube/plugins/mailcow:/var/www/html/plugins/mailcow:ro,Z
+      #- ./mailcow-roundcube/data/assets/roundcube/plugins/simple_smime:/var/www/html/plugins/simple_smime:ro,Z
+      - mysql-socket-vol-1:/var/run/mysqld/:z
+    labels:
+      - "com.docker.compose.service=roundcube"
+    restart: always
+    #sysctls:
+    #  - net.ipv6.conf.all.disable_ipv6=1
+    #  - net.ipv6.conf.default.disable_ipv6=1
+    networks:
+      mailcow-network:
+        ipv4_address: ${IPV4_NETWORK:-172.22.1}.100
+        aliases:
+          - roundcube
+
+  nginx-mailcow:
+    depends_on:
+      - roundcube-mailcow
+    volumes:
+      - ./mailcow-roundcube/data/conf/nginx/site.roundcube.conf:/etc/nginx/conf.d/site.roundcube.conf:ro,Z
+      - ./mailcow-roundcube/data/conf/nginx/site.roundcube.custom:/etc/nginx/conf.d/site.roundcube.custom:ro,Z
+
+  php-fpm-mailcow:
+    volumes:
+      - ./mailcow-roundcube/data/web/rc-auth.php:/web/rc-auth.php:ro,Z

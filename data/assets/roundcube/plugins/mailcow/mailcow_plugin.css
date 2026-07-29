@@ -1,0 +1,12 @@
+
+a.button.icon.mailcowui:before {
+    content: "\f0ad"
+}
+
+button.btn.mailcowui:before {
+    content: "\f0ad"
+}
+
+.menu a.mailcowui:before {
+    content: "\f0ad"
+}
