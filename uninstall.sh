@@ -63,10 +63,6 @@ echo ""
 
 echo "Cleaning up mailcow.conf..."
 
-sed -i '/# Database password for roundcube/d' "$CONF_FILE"
-sed -i '/ROUNDCUBEMAIL_DB_PASSWORD=/d' "$CONF_FILE"
-echo "-> ROUNDCUBEMAIL_DB_PASSWORD removed"
-
 if grep -q "^COMPOSE_FILE=" "$CONF_FILE"; then
     EXTENSION_COMPOSE="mailcow-roundcube/$EXTENSION_FILE_NAME"
     EXISTING_COMPOSE=$(grep -E "^COMPOSE_FILE=" "$CONF_FILE" | cut -d'=' -f2)
@@ -104,7 +100,7 @@ echo ""
 if [[ "$DB_CONFIRM" =~ ^[Yy]$ ]]; then
 
     echo "Stopping Roundcube container..."
-    docker compose stop roundcube-mailcow 2>/dev/null || true
+    docker compose stop roundcube 2>/dev/null || true
     echo "-> Roundcube container stopped"
 
     echo "Deleting Roundcube database and user..."
@@ -112,6 +108,9 @@ if [[ "$DB_CONFIRM" =~ ^[Yy]$ ]]; then
     docker compose exec -T mysql-mailcow mysql -uroot -p${DBROOT} -e "$DROP_SQL"
 
     echo "-> Roundcube database and user deleted"
+    sed -i '/# Database password for roundcube/d' "$CONF_FILE"
+    sed -i '/ROUNDCUBEMAIL_DB_PASSWORD=/d' "$CONF_FILE"
+    echo "-> ROUNDCUBEMAIL_DB_PASSWORD removed"
     echo ""
 fi
 
