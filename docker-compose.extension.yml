@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 services:
 
-  roundcube-mailcow:
+  roundcube:
     image: roundcube/roundcubemail:latest
-    #container_name: mailcowdockerized-roundcube-mailcow-1
     hostname: roundcube
     environment:
       - TZ=${TZ}
@@ -15,8 +14,7 @@ services:
       - ROUNDCUBEMAIL_SMTP_PORT=587
       - ROUNDCUBEMAIL_REQUEST_PATH=/roundcube
       - ROUNDCUBEMAIL_INSTALL_PLUGINS=1
-      - ROUNDCUBEMAIL_COMPOSER_PLUGINS=kolab/calendar,kolab/tasklist,johndoh/contextmenu
-        #roundcube/carddav,
+      - ROUNDCUBEMAIL_COMPOSER_PLUGINS=dump-autoload,roundcube/carddav:~5,kolab/calendar,kolab/tasklist,johndoh/contextmenu
         #,sblaisot/html5_notifier
 
       - ROUNDCUBEMAIL_PLUGINS=
@@ -29,16 +27,14 @@ services:
           vcard_attachments,
           emoticons,
           eniugma,
+          carddav,
           calendar,
           tasklist,
           contextmenu,
-          mailcow,
-          simple_smime
+          mailcow
       #carddav,
       #html5_notifier,
 
-      - ROUNDCUBEMAIL_CLIENT_ID=${ROUNDCUBEMAIL_CLIENT_ID:-}
-      - ROUNDCUBEMAIL_CLIENT_SECRET=${ROUNDCUBEMAIL_CLIENT_SECRET:-}
       - MAILCOW_HOSTNAME=${MAILCOW_HOSTNAME:-mailcow}
       - IPV4_NETWORK=${IPV4_NETWORK:-172.22.1}.0/24
       - IPV6_NETWORK=${IPV6_NETWORK:-fd00:dead:beef:cafe::}/64
@@ -48,14 +44,10 @@ services:
       - ./mailcow-roundcube/data/conf/roundcube/config.mailcow.inc.php:/var/roundcube/config/config.mailcow.inc.php:ro,Z
       - ./mailcow-roundcube/data/assets/roundcube/plugins:/var/www/html/plugins:Z
       #- ./mailcow-roundcube/data/assets/roundcube/plugins/mailcow:/var/www/html/plugins/mailcow:ro,Z
-      #- ./mailcow-roundcube/data/assets/roundcube/plugins/simple_smime:/var/www/html/plugins/simple_smime:ro,Z
       - mysql-socket-vol-1:/var/run/mysqld/:z
     labels:
       - "com.docker.compose.service=roundcube"
     restart: always
-    #sysctls:
-    #  - net.ipv6.conf.all.disable_ipv6=1
-    #  - net.ipv6.conf.default.disable_ipv6=1
     networks:
       mailcow-network:
         ipv4_address: ${IPV4_NETWORK:-172.22.1}.100

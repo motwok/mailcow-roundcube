@@ -34,24 +34,9 @@ $proxy_ips = [
 ];
 $config['proxy_whitelist'] = array_filter(array_unique($proxy_ips));
 
-// ----------------------------------
-// Database Connection
-// ----------------------------------
-$db_user = getenv('ROUNDCUBEMAIL_DB_USER') ?: 'roundcube';
-$db_password = getenv('ROUNDCUBEMAIL_DB_PASSWORD') ?: '';
-$db_name = getenv('ROUNDCUBEMAIL_DB_NAME') ?: 'roundcube';
-
-$config['db_dsnw'] = sprintf('mysqli://%s:%s@localhost/%s?socket=/var/run/mysqld/mysqld.sock',
-    urlencode($db_user),
-    urlencode($db_password),
-    $db_name
-);
-
-// // -------------------------------------------------------------------------
-// // 3. INTERNE MAILSERVER-VERBINDUNG (Löst das Problem mit dem Login-Fallback)
-// // -------------------------------------------------------------------------
-// MEMCACHE???
-// REDIS??
+// -------------------------------------------------------------------------
+// do not check certificates for IMAP, SMTP and ManageSieve connections
+// -------------------------------------------------------------------------
 $config['imap_conn_options'] = [
     'ssl' => [
         'verify_peer'      => false,
@@ -73,6 +58,26 @@ $config['smtp_conn_options'] = [
     ],
 ];
 
+// ----------------------------------
+// Database Connection
+// ----------------------------------
+$db_user = getenv('ROUNDCUBEMAIL_DB_USER') ?: 'roundcube';
+$db_password = getenv('ROUNDCUBEMAIL_DB_PASSWORD') ?: '';
+$db_name = getenv('ROUNDCUBEMAIL_DB_NAME') ?: 'roundcube';
+
+$config['db_dsnw'] = sprintf('mysqli://%s:%s@localhost/%s?socket=/var/run/mysqld/mysqld.sock',
+    urlencode($db_user),
+    urlencode($db_password),
+    $db_name
+);
+
+// ----------------------------------
+// carddav Plugin config
+// ----------------------------------
+// see plugins own config.inc.php file
+// TODO Check if it can be moved to this file
+// remove Roundcube addressbook
+$config['address_book_type'] = ''
 
 // ----------------------------------
 // MAIL SERVER INBOUND/OUTBOUND AUTH
