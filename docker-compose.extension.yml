@@ -14,8 +14,9 @@ services:
       - ROUNDCUBEMAIL_SMTP_PORT=587
       - ROUNDCUBEMAIL_REQUEST_PATH=/roundcube
       - ROUNDCUBEMAIL_INSTALL_PLUGINS=1
-      - ROUNDCUBEMAIL_COMPOSER_PLUGINS=dump-autoload,roundcube/carddav:~5,kolab/calendar,kolab/tasklist,johndoh/contextmenu
-        #,sblaisot/html5_notifier
+      - ROUNDCUBEMAIL_COMPOSER_PLUGINS=roundcube/carddav:~5,kolab/calendar,kolab/tasklist,johndoh/contextmenu
+        #sblaisot/html5_notifier
+        #dump-autoload
 
       - ROUNDCUBEMAIL_PLUGINS=
           markasjunk,
