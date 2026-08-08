@@ -56,7 +56,7 @@ services:
 
   nginx-mailcow:
     depends_on:
-      - roundcube-mailcow
+      - roundcube
     volumes:
       - ./mailcow-roundcube/data/conf/nginx/site.roundcube.conf:/etc/nginx/conf.d/site.roundcube.conf:ro,Z
       - ./mailcow-roundcube/data/conf/nginx/site.roundcube.custom:/etc/nginx/conf.d/site.roundcube.custom:ro,Z
