@@ -63,10 +63,10 @@ $prefs['_GLOBAL']['loglevel_http'] = \Psr\Log\LogLevel::ERROR;
 
 // Each account preset takes the following form:
 
-$prefs['Sogo'] = [
+$prefs['Personal'] = [
     // Account attributes
     //// required attributes
-    'accountname'         =>  'Sogo %u',
+    'accountname'         =>  'Personal',
 
     //// required attributes unless passwordless authentication is used (Kerberos)
     'username'     =>  '%u',
@@ -76,7 +76,7 @@ $prefs['Sogo'] = [
     'discovery_url'          =>  'http://sogo:20000/SOGo/dav/',
     'rediscover_time' => '1',
     ////// hide the account/addressbooks of this preset from CardDAV settings
-    'hide' => true,
+    'hide' => false,
     ////// send basic authentication data to the server even before requested by the server
     'preemptive_basic_auth' => true,
     ////// disable verification of SSL certificate presented by CardDAV server
@@ -84,7 +84,7 @@ $prefs['Sogo'] = [
 
     // Auto-discovered addressbook attributes, and for extra addressbooks if not overridden there
     //// optional attributes
-    //'name'         => '%N',
+    'name'         => '%N',
     //'active'       =>  true,
     //'readonly'     =>  <true or false>,
     //'refresh_time' => '<Refresh Time in Hours, Format HH[:MM[:SS]]>',
