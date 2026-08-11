@@ -14,7 +14,8 @@ services:
       - ROUNDCUBEMAIL_SMTP_PORT=587
       - ROUNDCUBEMAIL_REQUEST_PATH=/roundcube
       - ROUNDCUBEMAIL_INSTALL_PLUGINS=1
-      - ROUNDCUBEMAIL_COMPOSER_PLUGINS=roundcube/carddav:~5,kolab/calendar,kolab/tasklist,johndoh/contextmenu
+      - ROUNDCUBEMAIL_COMPOSER_PLUGINS=roundcube/carddav:~5,johndoh/contextmenu
+        # kolab/calendar,kolab/tasklist,
         #sblaisot/html5_notifier
         #dump-autoload
 
@@ -29,10 +30,10 @@ services:
           emoticons,
           eniugma,
           carddav,
-          calendar,
-          tasklist,
           contextmenu,
           mailcow
+      # calendar,
+      # tasklist,
       #carddav,
       #html5_notifier,
 
