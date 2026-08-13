@@ -17,7 +17,7 @@
 // $prefs['_GLOBAL']['fixed'] = true;
 
 // When enabled, this option hides the 'CardDAV' section inside Preferences.
-$prefs['_GLOBAL']['hide_preferences'] = true;
+// $prefs['_GLOBAL']['hide_preferences'] = true;
 
 // Scheme for storing the CardDAV passwords, in order from least to best security.
 // Options: plain, base64, des_key, encrypted (default)
@@ -50,14 +50,14 @@ $prefs['_GLOBAL']['loglevel_http'] = \Psr\Log\LogLevel::ERROR;
 //    'matchname' => '/collected recipients/i',
 //    'matchurl' => '#http://carddav.example.com/abooks/%u/CollectedRecipients#',
 //];
-//$prefs['_GLOBAL']['default_addressbook'] = [
-//    // Key of the preset, i.e. whatever is used for <Presetname> in the template below
-//    'preset'  => '<Presetname>',
-//    // The placeholders that can be used in the url attribute can also be used inside these regular rexpressions
-//    // If both matchname and matchurl are given, both need to match for the addressbook to be used
-//    'matchname' => '/collected recipients/i',
-//    'matchurl' => '#http://carddav.example.com/abooks/%u/CollectedRecipients#',
-//];
+$prefs['_GLOBAL']['default_addressbook'] = [
+    // Key of the preset, i.e. whatever is used for <Presetname> in the template below
+    'preset'  => 'Personal',
+    // The placeholders that can be used in the url attribute can also be used inside these regular rexpressions
+    // If both matchname and matchurl are given, both need to match for the addressbook to be used
+    // 'matchname' => '/collected recipients/i',
+    'matchurl' => '#https://mail.home.emminghaus-it.net/SOGo/dav/%u/Contacts/personal/#',
+];
 
 //// ** ACCOUNT PRESETS
 
@@ -65,36 +65,36 @@ $prefs['_GLOBAL']['loglevel_http'] = \Psr\Log\LogLevel::ERROR;
 
 $prefs['Personal'] = [
     // Account attributes
-    //// required attributes
+    // required attributes
     'accountname'         =>  'Personal',
 
-    //// required attributes unless passwordless authentication is used (Kerberos)
+    // required attributes unless passwordless authentication is used (Kerberos)
     'username'     =>  '%u',
     'password'     =>  '%p',
-    //// optional attributes
-    ////// if discovery_url is not specified / null, addressbook discovery is disabled (see extra_addressbooks)
+    // optional attributes
+    // if discovery_url is not specified / null, addressbook discovery is disabled (see extra_addressbooks)
     'discovery_url'          =>  'http://sogo:20000/SOGo/dav/',
-    'rediscover_time' => '1',
-    ////// hide the account/addressbooks of this preset from CardDAV settings
+    'rediscover_time' => '00:00:30',
+    // hide the account/addressbooks of this preset from CardDAV settings
     'hide' => false,
-    ////// send basic authentication data to the server even before requested by the server
+    // send basic authentication data to the server even before requested by the server
     'preemptive_basic_auth' => true,
-    ////// disable verification of SSL certificate presented by CardDAV server
+    // disable verification of SSL certificate presented by CardDAV server
     'ssl_noverify' => true,
 
     // Auto-discovered addressbook attributes, and for extra addressbooks if not overridden there
-    //// optional attributes
+    // optional attributes
     'name'         => '%N',
-    //'active'       =>  true,
+    'active'       =>  true,
     //'readonly'     =>  <true or false>,
-    //'refresh_time' => '<Refresh Time in Hours, Format HH[:MM[:SS]]>',
-    //'use_categories' => <true or false>,
+    'refresh_time' => '1',
+    'use_categories' => true,
     // 
-    ////// attributes that are fixed (i.e., not editable by the user) and auto-updated for this preset
+    //// attributes that are fixed (i.e., not editable by the user) and auto-updated for this preset
     // 'fixed'        =>  [ < 0 or more of the other attribute keys > ],
     // 
-    ////// only show contacts that have an email address (even in the addressbook view)
-    // 'require_always_email' => false,
+    // only show contacts that have an email address (even in the addressbook view)
+    'require_always_email' => false,
 
     // optional: manually add (non-discoverable) addressbooks
     //'extra_addressbooks' =>  [
