@@ -50,6 +50,21 @@ class SogoCardDavMiddleware
     }
 
     /**
+     * Escaped einen Parameter-Wert für VLIST (mit Anführungszeichen)
+     */
+    private function escapeVListParameter(string $value): string
+    {
+        // Wenn Sonderzeichen enthalten sind, in Anführungszeichen setzen
+        if (preg_match('/[,;:]/', $value)) {
+            // Escape nur Quotes und Backslashes innerhalb der Quotes
+            $value = str_replace('\\', '\\\\', $value);
+            $value = str_replace('"', '\\"', $value);
+            return '"' . $value . '"';
+        }
+        return $value;
+    }
+
+    /**
      * Unescaped einen vCard-Wert nach RFC 6350
      */
     private function unescapeVCardValue(string $value): string
@@ -59,6 +74,20 @@ class SogoCardDavMiddleware
         $value = str_replace('\\;', ';', $value);
         $value = str_replace('\\,', ',', $value);
         $value = str_replace('\\\\', '\\', $value); // Backslash zuletzt!
+        return $value;
+    }
+
+    /**
+     * Unescaped einen Parameter-Wert (entfernt Quotes falls vorhanden)
+     */
+    private function unescapeVListParameter(string $value): string
+    {
+        // Entferne umschließende Quotes
+        if (preg_match('/^"(.*)"$/', $value, $match)) {
+            $value = $match[1];
+            $value = str_replace('\\"', '"', $value);
+            $value = str_replace('\\\\', '\\', $value);
+        }
         return $value;
     }
 
@@ -200,8 +229,8 @@ class SogoCardDavMiddleware
 
                 // Fall 1: mailto: - direkt E-Mail
                 if (filter_var($cleanUid, FILTER_VALIDATE_EMAIL)) {
-                    $escapedEmail = $this->escapeVCardValue($cleanUid);
-                    $card = "CARD;FN={$escapedEmail}:EMAIL={$escapedEmail};{$cleanUid}";
+                    $emailParam = $this->escapeVListParameter($cleanUid);
+                    $card = "CARD;FN={$emailParam}:EMAIL={$emailParam};{$cleanUid}";
                     $vlist[] = $card;
                     $this->logDebug("  -> $card");
                 }
@@ -211,9 +240,9 @@ class SogoCardDavMiddleware
                     $contactData = $this->fetchContactByUuid($cleanUid);
 
                     if ($contactData && isset($contactData['email'])) {
-                        $email = $this->escapeVCardValue($contactData['email']);
-                        $fn = $this->escapeVCardValue($contactData['fn'] ?? $contactData['email']);
-                        $card = "CARD;FN={$fn}:EMAIL={$email};{$cleanUid}";
+                        $emailParam = $this->escapeVListParameter($contactData['email']);
+                        $fnParam = $this->escapeVListParameter($contactData['fn'] ?? $contactData['email']);
+                        $card = "CARD;FN={$fnParam}:EMAIL={$emailParam};{$cleanUid}";
                         $vlist[] = $card;
                         $this->logDebug("  -> $card (resolved from CardDAV)");
                     } else {
@@ -281,15 +310,16 @@ class SogoCardDavMiddleware
 
                 $this->logDebug("CARD[$index] params='$params' uid='$targetUid'");
 
-                // Extrahiere EMAIL und FN aus den Parametern (mit Unescape!)
+                // Extrahiere EMAIL und FN aus den Parametern (mit Unescape für Parameter!)
                 $email = null;
                 $fn = null;
 
-                if (preg_match('/EMAIL=([^;:]+)/i', $params, $emailMatch)) {
-                    $email = $this->unescapeVCardValue(trim($emailMatch[1]));
+                // Regex muss auch Quotes matchen: EMAIL="value" oder EMAIL=value
+                if (preg_match('/EMAIL=("(?:[^"\\\\]|\\\\.)*"|[^;:]+)/i', $params, $emailMatch)) {
+                    $email = $this->unescapeVListParameter(trim($emailMatch[1]));
                 }
-                if (preg_match('/FN=([^;:]+)/i', $params, $fnMatch)) {
-                    $fn = $this->unescapeVCardValue(trim($fnMatch[1]));
+                if (preg_match('/FN=("(?:[^"\\\\]|\\\\.)*"|[^;:]+)/i', $params, $fnMatch)) {
+                    $fn = $this->unescapeVListParameter(trim($fnMatch[1]));
                 }
 
                 $this->logDebug("Extracted from params - EMAIL: $email, FN: $fn");
