@@ -10,11 +10,24 @@ class SogoCardDavMiddleware
     // TODO PACK THIS INTO CONFIG FILE
     private const SOGO_BACKEND_URL = 'http://sogo:20000'; 
 
+    private function logDebug(string $message, $data = null): void
+    {
+        $logFile = '/tmp/sogo_middleware_debug.log';
+        $timestamp = date('Y-m-d H:i:s');
+        $logEntry = "[$timestamp] $message";
+        if ($data !== null) {
+            $logEntry .= "\n" . print_r($data, true);
+        }
+        file_put_contents($logFile, $logEntry . "\n\n", FILE_APPEND);
+    }
+
     public function handleRequest(): void 
     {
         $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $requestUri = $_SERVER['REQUEST_URI'] ?? '';
         $requestBody = file_get_contents('php://input');
+
+        $this->logDebug("=== REQUEST: $requestMethod $requestUri ===");
 
         // 1. CLIENT -> SERVER PROTECTION (Schreibzugriffe absichern)
         // Falls der Client Bedingungen (ETags/Tokens) mitsendet, lesen wir diese aus,
@@ -24,7 +37,9 @@ class SogoCardDavMiddleware
 
         // Wenn ein Client eine Gruppe hochlädt (vCard 3.0 oder 4.0), konvertieren wir sie für SOGo in VLIST
         if ($requestMethod === 'PUT' && (stripos($requestBody, 'KIND:group') !== false || stripos($requestBody, 'X-ADDRESSBOOKSERVER-KIND:group') !== false)) {
+            $this->logDebug("Converting GROUP to VLIST", substr($requestBody, 0, 500));
             $requestBody = $this->rfc6350ToSogoVlist($requestBody);
+            $this->logDebug("Converted VLIST", $requestBody);
         }
 
         // 2. REQUEST AN SOGO SERVER WEITERLEITEN
@@ -34,6 +49,8 @@ class SogoCardDavMiddleware
         $statusCode = $response['status_code'];
         $contentType = $response['headers']['content-type'] ?? '';
         $responseBody = $response['body'];
+
+        $this->logDebug("Response Status: $statusCode, Content-Type: $contentType");
 
         // Replikations-Schutz: Falls SOGo wegen einer fehlgeschlagenen Bedingung mit 412 Precondition Failed 
         // antwortet, reichen wir diesen Status sofort unverändert durch, um Sync-Konflikte sauber im Client zu triggern.
@@ -45,11 +62,14 @@ class SogoCardDavMiddleware
         // Fall A: Massen-Synchronisation über XML (REPORT / PROPFIND)
         // Prüfe ob Antwort XML enthält (unabhängig vom Content-Type Header)
         if (!empty($responseBody) && (stripos($contentType, 'xml') !== false || stripos(trim($responseBody), '<?xml') === 0)) {
+            $this->logDebug("Processing XML response");
             $responseBody = $this->processXmlResponse($responseBody);
         }
         // Fall B: Einzelabruf einer Gruppe über GET (nur wenn NICHT bereits als XML verarbeitet)
         elseif (stripos($responseBody, 'BEGIN:VLIST') !== false) {
+            $this->logDebug("Converting VLIST to vCard", substr($responseBody, 0, 500));
             $responseBody = $this->sogoVlistToRfc6350($responseBody);
+            $this->logDebug("Converted vCard", $responseBody);
         }
 
         // 4. ANTWORT AUSLIEFERN
@@ -72,19 +92,24 @@ class SogoCardDavMiddleware
         $addressDataNodes = $xpath->query('//*[local-name()="address-data"]');
 
         if ($addressDataNodes && $addressDataNodes->length > 0) {
+            $this->logDebug("Found {$addressDataNodes->length} address-data nodes in XML");
+
             foreach ($addressDataNodes as $node) {
                 $currentData = $node->nodeValue;
 
                 if (stripos($currentData, 'BEGIN:VLIST') !== false) {
+                    $this->logDebug("Converting VLIST in XML", substr($currentData, 0, 300));
                     $vcard4 = $this->sogoVlistToRfc6350($currentData);
-                    
+
                     // Bestehende Kindknoten löschen, um XML-Integrität zu wahren
                     while ($node->hasChildNodes()) {
                         $node->removeChild($node->firstChild);
                     }
                     // Als CDATA einbetten, damit vCard-Zeilenumbrüche das XML nicht korrumpieren
                     $node->appendChild($dom->createCDATASection($vcard4));
+                    $this->logDebug("Converted vCard in XML", substr($vcard4, 0, 300));
                 }
+            }
             }
             return $dom->saveXML();
         }
