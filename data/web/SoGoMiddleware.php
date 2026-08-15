@@ -43,10 +43,11 @@ class SogoCardDavMiddleware
         }
 
         // Fall A: Massen-Synchronisation über XML (REPORT / PROPFIND)
-        if (stripos($contentType, 'xml') !== false && !empty($responseBody)) {
+        // Prüfe ob Antwort XML enthält (unabhängig vom Content-Type Header)
+        if (!empty($responseBody) && (stripos($contentType, 'xml') !== false || stripos(trim($responseBody), '<?xml') === 0)) {
             $responseBody = $this->processXmlResponse($responseBody);
         }
-        // Fall B: Einzelabruf einer Gruppe über GET
+        // Fall B: Einzelabruf einer Gruppe über GET (nur wenn NICHT bereits als XML verarbeitet)
         elseif (stripos($responseBody, 'BEGIN:VLIST') !== false) {
             $responseBody = $this->sogoVlistToRfc6350($responseBody);
         }
