@@ -188,7 +188,7 @@ class SogoCardDavMiddleware
                     if ($contactData && isset($contactData['email'])) {
                         $email = $contactData['email'];
                         $fn = $contactData['fn'] ?? $email;
-                        $card = "CARD;EMAIL={$email};FN={$fn}:{$cleanUid}";
+                        $card = "CARD;EMAIL={$email};FN={$fn}:{$cleanUid}.";
                         $vlist[] = $card;
                         $this->logDebug("  -> $card (resolved from CardDAV)");
                     } else {
