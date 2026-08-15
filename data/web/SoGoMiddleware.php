@@ -138,16 +138,29 @@ class SogoCardDavMiddleware
         preg_match('/^REV:(.+)$/mi', $vlist, $revMatch);
         preg_match_all('/^CARD([^:]*):(.+)$/mi', $vlist, $matches);
 
+        // Pflichtfelder extrahieren
         $uid = isset($uidMatch[1]) ? trim($uidMatch[1]) : null;
         $fn = isset($fnMatch[1]) ? trim($fnMatch[1]) : 'Gruppe';
 
-        $vcard = ["BEGIN:VCARD", "VERSION:4.0", "KIND:group"];
-        if ($uid) $vcard[] = "UID:$uid";
+        // vCard 4.0 Struktur aufbauen (RFC 6350 konforme Reihenfolge)
+        $vcard = [];
+        $vcard[] = "BEGIN:VCARD";
+        $vcard[] = "VERSION:4.0";
+
+        // UID ist in RFC 6350 für vCard 4.0 erforderlich
+        if ($uid) {
+            $vcard[] = "UID:$uid";
+        }
+
         $vcard[] = "FN:$fn";
+        $vcard[] = "KIND:group";
+
+        // Optionale Felder
         if (isset($revMatch[1])) {
             $vcard[] = "REV:" . trim($revMatch[1]);
         }
 
+        // Mitglieder konvertieren
         if (!empty($matches[2])) {
             foreach ($matches[2] as $index => $targetUid) {
                 $targetUid = trim($targetUid);
@@ -155,15 +168,14 @@ class SogoCardDavMiddleware
 
                 if (preg_match('/EMAIL=([^;:]+)/i', $params, $emailMatch)) {
                     $vcard[] = "MEMBER:mailto:" . trim($emailMatch[1]);
+                } elseif (filter_var($targetUid, FILTER_VALIDATE_EMAIL)) {
+                    $vcard[] = "MEMBER:mailto:" . $targetUid;
                 } else {
-                    if (filter_var($targetUid, FILTER_VALIDATE_EMAIL)) {
-                        $vcard[] = "MEMBER:mailto:" . $targetUid;
-                    } else {
-                        $vcard[] = "MEMBER:urn:uuid:" . $targetUid;
-                    }
+                    $vcard[] = "MEMBER:urn:uuid:" . $targetUid;
                 }
             }
         }
+
         $vcard[] = "END:VCARD";
         return implode("\r\n", $vcard);
     }
