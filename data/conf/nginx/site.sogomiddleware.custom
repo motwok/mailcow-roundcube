@@ -1,5 +1,5 @@
 location /SOGo/dav/ {
-	proxy_pass http://php-fpm:80/SoGoMiddleware.php;
+	proxy_pass http://phpfpm:80/SoGoMiddleware.php;
 
     proxy_set_header Host $host;
 	proxy_set_header X-Real-IP $remote_addr;
