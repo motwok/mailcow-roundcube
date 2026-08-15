@@ -168,15 +168,35 @@ class SogoCardDavMiddleware
                 $member = trim($member);
                 $this->logDebug("MEMBER[$index]: $member");
 
+                // Extrahiere mailto: oder urn:uuid:
                 $cleanUid = preg_replace('/^(urn:uuid:|mailto:)/i', '', $member);
+
+                // Fall 1: mailto: - direkt E-Mail
                 if (filter_var($cleanUid, FILTER_VALIDATE_EMAIL)) {
                     $card = "CARD;EMAIL={$cleanUid};FN={$cleanUid}:{$cleanUid}";
                     $vlist[] = $card;
                     $this->logDebug("  -> $card");
-                } else {
-                    $card = "CARD:{$cleanUid}";
-                    $vlist[] = $card;
-                    $this->logDebug("  -> $card (WARNING: No email, only UID!)");
+                }
+                // Fall 2: urn:uuid: - Kontakt vom CardDAV-Server abrufen
+                else {
+                    // Entferne .vcf Suffix falls vorhanden
+                    $cleanUid = preg_replace('/\.vcf$/i', '', $cleanUid);
+
+                    // Versuche Kontakt abzurufen
+                    $contactData = $this->fetchContactByUuid($cleanUid);
+
+                    if ($contactData && isset($contactData['email'])) {
+                        $email = $contactData['email'];
+                        $fn = $contactData['fn'] ?? $email;
+                        $card = "CARD;EMAIL={$email};FN={$fn}:{$cleanUid}";
+                        $vlist[] = $card;
+                        $this->logDebug("  -> $card (resolved from CardDAV)");
+                    } else {
+                        // Fallback: Ohne E-Mail/Name - SOGo wird leeren Eintrag zeigen
+                        $card = "CARD:{$cleanUid}";
+                        $vlist[] = $card;
+                        $this->logDebug("  -> $card (WARNING: Could not resolve contact!)");
+                    }
                 }
             }
         } else {
@@ -234,22 +254,41 @@ class SogoCardDavMiddleware
             $this->logDebug("Converting " . count($matches[2]) . " CARD entries to MEMBER");
             foreach ($matches[2] as $index => $targetUid) {
                 $targetUid = trim($targetUid);
-                $params = $matches[1][$index];
+                $params = trim($matches[1][$index]);
 
                 $this->logDebug("CARD[$index] params='$params' uid='$targetUid'");
 
+                // Extrahiere EMAIL und FN aus den Parametern
+                $email = null;
+                $fn = null;
+
                 if (preg_match('/EMAIL=([^;:]+)/i', $params, $emailMatch)) {
-                    $member = "X-ADDRESSBOOKSERVER-MEMBER:mailto:" . trim($emailMatch[1]);
+                    $email = trim($emailMatch[1]);
+                }
+                if (preg_match('/FN=([^;:]+)/i', $params, $fnMatch)) {
+                    $fn = trim($fnMatch[1]);
+                }
+
+                // Baue MEMBER-Eintrag
+                // Roundcube erwartet: X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:<uid>
+                // ABER der Kontakt muss im Adressbuch existieren mit dieser UID!
+
+                if ($email) {
+                    // Wenn wir eine E-Mail haben, erstelle/aktualisiere den Kontakt im Adressbuch
+                    // damit Roundcube ihn finden kann
+                    $member = "X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:" . $targetUid;
                     $vcard[] = $member;
-                    $this->logDebug("  -> $member");
+                    $this->logDebug("  -> $member (email=$email, fn=$fn)");
                 } elseif (filter_var($targetUid, FILTER_VALIDATE_EMAIL)) {
+                    // Fallback: UID ist selbst eine E-Mail
                     $member = "X-ADDRESSBOOKSERVER-MEMBER:mailto:" . $targetUid;
                     $vcard[] = $member;
                     $this->logDebug("  -> $member");
                 } else {
+                    // Nur UID - Roundcube wird versuchen den Kontakt zu finden
                     $member = "X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:" . $targetUid;
                     $vcard[] = $member;
-                    $this->logDebug("  -> $member");
+                    $this->logDebug("  -> $member (WARNING: No email in CARD, Roundcube might not find contact!)");
                 }
             }
         } else {
@@ -260,6 +299,53 @@ class SogoCardDavMiddleware
         $result = implode("\r\n", $vcard);
         $this->logDebug("=== VLIST -> vCard OUTPUT ===", $result);
         return $result;
+    }
+
+    /**
+     * Ruft einen Kontakt vom CardDAV-Server anhand der UUID ab
+     */
+    private function fetchContactByUuid(string $uuid): ?array
+    {
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+
+        // Extrahiere den Adressbuch-Pfad aus der aktuellen URI
+        // Beispiel: /SOGo/dav/user@domain/Contacts/personal/group.vcf
+        // -> /SOGo/dav/user@domain/Contacts/personal/{uuid}.vcf
+        if (preg_match('#^(.*/)([^/]+\.vcf)$#', $requestUri, $matches)) {
+            $basePath = $matches[1];
+            $contactUri = $basePath . $uuid . '.vcf';
+
+            $this->logDebug("Fetching contact from: $contactUri");
+
+            try {
+                $response = $this->forwardToSogo('GET', $contactUri, '', null, null);
+
+                if ($response['status_code'] === 200 && !empty($response['body'])) {
+                    $contactVcard = $response['body'];
+
+                    // Extrahiere E-Mail und FN aus dem vCard
+                    preg_match('/^FN:(.+)$/mi', $contactVcard, $fnMatch);
+                    preg_match('/^EMAIL[^:]*:(.+)$/mi', $contactVcard, $emailMatch);
+
+                    $email = isset($emailMatch[1]) ? trim($emailMatch[1]) : null;
+                    $fn = isset($fnMatch[1]) ? trim($fnMatch[1]) : null;
+
+                    if ($email || $fn) {
+                        $this->logDebug("Resolved contact: FN=$fn, EMAIL=$email");
+                        return [
+                            'email' => $email,
+                            'fn' => $fn
+                        ];
+                    }
+                } else {
+                    $this->logDebug("Failed to fetch contact: HTTP {$response['status_code']}");
+                }
+            } catch (Exception $e) {
+                $this->logDebug("Exception fetching contact: " . $e->getMessage());
+            }
+        }
+
+        return null;
     }
 
     /**
