@@ -304,47 +304,25 @@ class SogoCardDavMiddleware
         // Mitglieder konvertieren
         if (!empty($matches[2])) {
             $this->logDebug("Converting " . count($matches[2]) . " CARD entries to MEMBER");
-            foreach ($matches[2] as $index => $targetUid) {
-                $targetUid = trim($targetUid);
+            foreach ($matches[2] as $index => $targetFilename) {
+                $targetFilename = trim($targetFilename);
                 $params = trim($matches[1][$index]);
 
-                $this->logDebug("CARD[$index] params='$params' uid='$targetUid'");
+                $this->logDebug("CARD[$index] params='$params' filename='$targetFilename'");
 
-                // Extrahiere EMAIL und FN aus den Parametern (mit Unescape für Parameter!)
-                $email = null;
-                $fn = null;
+                // SOGo gibt uns den DATEINAMEN (mit .vcf), aber wir brauchen die echte UID
+                // Hole die UID aus dem vCard des Kontakts
+                $actualUid = $this->getUidFromFilename($targetFilename);
 
-                // Regex muss auch Quotes matchen: EMAIL="value" oder EMAIL=value
-                if (preg_match('/EMAIL=("(?:[^"\\\\]|\\\\.)*"|[^;:]+)/i', $params, $emailMatch)) {
-                    $email = $this->unescapeVListParameter(trim($emailMatch[1]));
-                }
-                if (preg_match('/FN=("(?:[^"\\\\]|\\\\.)*"|[^;:]+)/i', $params, $fnMatch)) {
-                    $fn = $this->unescapeVListParameter(trim($fnMatch[1]));
+                if (!$actualUid) {
+                    $this->logDebug("WARNING: Could not get UID for filename: $targetFilename - skipping");
+                    continue;
                 }
 
-                $this->logDebug("Extracted from params - EMAIL: $email, FN: $fn");
+                $this->logDebug("Resolved UID: $actualUid (from filename: $targetFilename)");
 
-                // Baue MEMBER-Eintrag
-                // Roundcube erwartet: X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:<uid>
-                // ABER der Kontakt muss im Adressbuch existieren mit dieser UID!
-
-                if ($email) {
-                    // Wenn wir eine E-Mail haben, erstelle/aktualisiere den Kontakt im Adressbuch
-                    // damit Roundcube ihn finden kann
-                    $member = "X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:" . $targetUid;
-                    $vcard[] = $member;
-                    $this->logDebug("  -> $member (email=$email, fn=$fn)");
-                } elseif (filter_var($targetUid, FILTER_VALIDATE_EMAIL)) {
-                    // Fallback: UID ist selbst eine E-Mail
-                    $member = "X-ADDRESSBOOKSERVER-MEMBER:mailto:" . $targetUid;
-                    $vcard[] = $member;
-                    $this->logDebug("  -> $member");
-                } else {
-                    // Nur UID - Roundcube wird versuchen den Kontakt zu finden
-                    $member = "X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:" . $targetUid;
-                    $vcard[] = $member;
-                    $this->logDebug("  -> $member (WARNING: No email in CARD, Roundcube might not find contact!)");
-                }
+                $member = "X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:" . $actualUid;
+                $vcard[] = $member;
             }
         } else {
             $this->logDebug("WARNING: No CARD entries found in VLIST!");
@@ -354,6 +332,50 @@ class SogoCardDavMiddleware
         $result = implode("\r\n", $vcard);
         $this->logDebug("=== VLIST -> vCard OUTPUT ===", $result);
         return $result;
+    }
+
+    /**
+     * Holt die echte UID aus einem vCard anhand des Dateinamens
+     */
+    private function getUidFromFilename(string $filename): ?string
+    {
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+
+        $this->logDebug("--- getUidFromFilename: $filename ---");
+
+        // Extrahiere Basispfad
+        if (!preg_match('#^(.*/)([^/]+\.vcf)$#', $requestUri, $matches)) {
+            $this->logDebug("Could not extract base path");
+            return null;
+        }
+
+        $basePath = $matches[1];
+        $contactUri = $basePath . $filename;
+
+        $this->logDebug("Fetching vCard from: $contactUri");
+
+        // Hole vCard vom Server
+        $response = $this->internalSogoRequest('GET', $contactUri);
+
+        if ($response['status_code'] === 200 && !empty($response['body'])) {
+            $vcard = $response['body'];
+
+            // Unfolding
+            $vcard = preg_replace('/[\r\n]+[ \t]/', '', $vcard);
+
+            // Extrahiere UID
+            if (preg_match('/^UID:(.+)$/mi', $vcard, $uidMatch)) {
+                $uid = trim($uidMatch[1]);
+                $this->logDebug("Found UID: $uid");
+                return $uid;
+            } else {
+                $this->logDebug("No UID found in vCard");
+            }
+        } else {
+            $this->logDebug("Failed to fetch vCard: HTTP {$response['status_code']}");
+        }
+
+        return null;
     }
 
     /**
