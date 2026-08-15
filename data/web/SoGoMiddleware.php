@@ -159,135 +159,21 @@ class SogoCardDavMiddleware
         }
 
         if (!empty($memberMatches[1])) {
+            $this->logDebug("Found " . count($memberMatches[1]) . " members in group", $memberMatches[1]);
             foreach ($memberMatches[1] as $member) {
-                $memberInfo = $this->resolveMemberInfo(trim($member), $vcard);
-                if ($memberInfo) {
-                    $vlist[] = $memberInfo;
+                $member = trim($member);
+                $this->logDebug("Processing member", $member);
+
+                $cleanUid = preg_replace('/^(urn:uuid:|mailto:)/i', '', $member);
+                if (filter_var($cleanUid, FILTER_VALIDATE_EMAIL)) {
+                    $vlist[] = "CARD;EMAIL={$cleanUid};FN={$cleanUid}:{$cleanUid}";
+                } else {
+                    $vlist[] = "CARD:{$cleanUid}";
                 }
             }
         }
         $vlist[] = "END:VLIST";
         return implode("\r\n", $vlist);
-    }
-
-    /**
-     * Löst MEMBER-Referenzen auf und erstellt SOGo CARD-Einträge
-     * Unterstützt: mailto:, urn:uuid:, sowie eingebettete vCards
-     */
-    private function resolveMemberInfo(string $memberUri, string $groupVcard): ?string
-    {
-        $this->logDebug("Resolving member: $memberUri");
-
-        // Fall 1: mailto: URI - direkter E-Mail-Verweis
-        if (preg_match('/^mailto:(.+)$/i', $memberUri, $emailMatch)) {
-            $email = trim($emailMatch[1]);
-            // Versuche, zusätzliche Informationen aus dem Gruppen-vCard zu extrahieren
-            // oder nutze E-Mail als Fallback für FN
-            return "CARD;EMAIL={$email};FN={$email}:{$email}";
-        }
-
-        // Fall 2: urn:uuid: - Referenz auf einen anderen Kontakt
-        if (preg_match('/^urn:uuid:(.+)$/i', $memberUri, $uuidMatch)) {
-            $uuid = trim($uuidMatch[1]);
-
-            // Versuche, die Kontaktdaten aus einem eingebetteten vCard zu extrahieren
-            // (manche Clients senden die Member-vCards inline mit)
-            $memberData = $this->extractEmbeddedMemberData($uuid, $groupVcard);
-            if ($memberData) {
-                $email = $memberData['email'] ?? $uuid;
-                $fn = $memberData['fn'] ?? $email;
-
-                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    return "CARD;EMAIL={$email};FN={$fn}:{$uuid}";
-                }
-                return "CARD;FN={$fn}:{$uuid}";
-            }
-
-            // Fallback: Versuche die UUID als E-Mail zu interpretieren
-            // ODER rufe den Kontakt vom CardDAV-Server ab
-            $contactData = $this->fetchContactFromCardDav($uuid);
-            if ($contactData) {
-                $email = $contactData['email'] ?? '';
-                $fn = $contactData['fn'] ?? '';
-
-                if ($email && $fn) {
-                    return "CARD;EMAIL={$email};FN={$fn}:{$uuid}";
-                } elseif ($email) {
-                    return "CARD;EMAIL={$email};FN={$email}:{$uuid}";
-                } elseif ($fn) {
-                    return "CARD;FN={$fn}:{$uuid}";
-                }
-            }
-
-            // Letzter Fallback: Leeres CARD überspringen statt zu senden
-            $this->logDebug("WARNING: Could not resolve contact data for UUID: $uuid - skipping member");
-            return null;
-        }
-
-        // Fall 3: Direkter String (sollte nicht vorkommen, aber als Fallback)
-        if (filter_var($memberUri, FILTER_VALIDATE_EMAIL)) {
-            return "CARD;EMAIL={$memberUri};FN={$memberUri}:{$memberUri}";
-        }
-
-        $this->logDebug("WARNING: Unsupported member format: $memberUri - skipping");
-        return null;
-    }
-
-    /**
-     * Extrahiert Kontaktdaten aus eingebetteten vCards im Gruppen-vCard
-     */
-    private function extractEmbeddedMemberData(string $uuid, string $groupVcard): ?array
-    {
-        // Manche vCard-Implementierungen betten Member-Daten direkt ein
-        // Beispiel: vCard 4.0 kann MEMBER mit zusätzlichen Parametern haben
-        // oder es gibt separate vCards im gleichen Dokument
-
-        // TODO: Implementierung falls nötig - momentan nicht Standard
-        return null;
-    }
-
-    /**
-     * Ruft Kontaktdaten vom CardDAV-Server ab (für urn:uuid: Referenzen)
-     */
-    private function fetchContactFromCardDav(string $uuid): ?array
-    {
-        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
-
-        // Extrahiere den Adressbuch-Pfad aus der aktuellen URI
-        // Beispiel: /SOGo/dav/user@domain/Contacts/personal/group.vcf
-        // -> /SOGo/dav/user@domain/Contacts/personal/{uuid}.vcf
-        if (preg_match('#^(.*/)([^/]+\.vcf)$#', $requestUri, $matches)) {
-            $basePath = $matches[1];
-            $contactUri = $basePath . $uuid . '.vcf';
-
-            $this->logDebug("Fetching contact from: $contactUri");
-
-            // Hole den Kontakt vom Backend
-            $response = $this->forwardToSogo('GET', $contactUri, '', null, null);
-
-            if ($response['status_code'] === 200 && !empty($response['body'])) {
-                $contactVcard = $response['body'];
-
-                // Extrahiere E-Mail und FN aus dem vCard
-                preg_match('/^FN:(.+)$/mi', $contactVcard, $fnMatch);
-                preg_match('/^EMAIL[^:]*:(.+)$/mi', $contactVcard, $emailMatch);
-
-                $email = isset($emailMatch[1]) ? trim($emailMatch[1]) : null;
-                $fn = isset($fnMatch[1]) ? trim($fnMatch[1]) : null;
-
-                if ($email || $fn) {
-                    $this->logDebug("Resolved contact: FN=$fn, EMAIL=$email");
-                    return [
-                        'email' => $email,
-                        'fn' => $fn
-                    ];
-                }
-            } else {
-                $this->logDebug("Failed to fetch contact: HTTP {$response['status_code']}");
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -306,10 +192,10 @@ class SogoCardDavMiddleware
         $uid = isset($uidMatch[1]) ? trim($uidMatch[1]) : null;
         $fn = isset($fnMatch[1]) ? trim($fnMatch[1]) : 'Gruppe';
 
-        // vCard 3.0 mit Apple Extensions (Roundcube/Sabre-kompatibel)
+        // vCard 4.0 (RFC 6350)
         $vcard = [];
         $vcard[] = "BEGIN:VCARD";
-        $vcard[] = "VERSION:3.0";
+        $vcard[] = "VERSION:4.0";
 
         if ($uid) {
             $vcard[] = "UID:$uid";
@@ -317,7 +203,7 @@ class SogoCardDavMiddleware
 
         $vcard[] = "FN:$fn";
         $vcard[] = "N:;;;;";
-        $vcard[] = "X-ADDRESSBOOKSERVER-KIND:group";
+        $vcard[] = "KIND:group";
 
         // Optionale Felder
         if (isset($revMatch[1])) {
@@ -331,11 +217,11 @@ class SogoCardDavMiddleware
                 $params = $matches[1][$index];
 
                 if (preg_match('/EMAIL=([^;:]+)/i', $params, $emailMatch)) {
-                    $vcard[] = "X-ADDRESSBOOKSERVER-MEMBER:mailto:" . trim($emailMatch[1]);
+                    $vcard[] = "MEMBER:mailto:" . trim($emailMatch[1]);
                 } elseif (filter_var($targetUid, FILTER_VALIDATE_EMAIL)) {
-                    $vcard[] = "X-ADDRESSBOOKSERVER-MEMBER:mailto:" . $targetUid;
+                    $vcard[] = "MEMBER:mailto:" . $targetUid;
                 } else {
-                    $vcard[] = "X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:" . $targetUid;
+                    $vcard[] = "MEMBER:urn:uuid:" . $targetUid;
                 }
             }
         }
