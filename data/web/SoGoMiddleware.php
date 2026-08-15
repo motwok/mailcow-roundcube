@@ -192,10 +192,10 @@ class SogoCardDavMiddleware
         $uid = isset($uidMatch[1]) ? trim($uidMatch[1]) : null;
         $fn = isset($fnMatch[1]) ? trim($fnMatch[1]) : 'Gruppe';
 
-        // vCard 4.0 (RFC 6350)
+        // vCard 3.0 mit Apple Extensions (CardDAV De-facto-Standard für Gruppen)
         $vcard = [];
         $vcard[] = "BEGIN:VCARD";
-        $vcard[] = "VERSION:4.0";
+        $vcard[] = "VERSION:3.0";
 
         if ($uid) {
             $vcard[] = "UID:$uid";
@@ -203,7 +203,7 @@ class SogoCardDavMiddleware
 
         $vcard[] = "FN:$fn";
         $vcard[] = "N:;;;;";
-        $vcard[] = "KIND:group";
+        $vcard[] = "X-ADDRESSBOOKSERVER-KIND:group";
 
         // Optionale Felder
         if (isset($revMatch[1])) {
@@ -217,11 +217,11 @@ class SogoCardDavMiddleware
                 $params = $matches[1][$index];
 
                 if (preg_match('/EMAIL=([^;:]+)/i', $params, $emailMatch)) {
-                    $vcard[] = "MEMBER:mailto:" . trim($emailMatch[1]);
+                    $vcard[] = "X-ADDRESSBOOKSERVER-MEMBER:mailto:" . trim($emailMatch[1]);
                 } elseif (filter_var($targetUid, FILTER_VALIDATE_EMAIL)) {
-                    $vcard[] = "MEMBER:mailto:" . $targetUid;
+                    $vcard[] = "X-ADDRESSBOOKSERVER-MEMBER:mailto:" . $targetUid;
                 } else {
-                    $vcard[] = "MEMBER:urn:uuid:" . $targetUid;
+                    $vcard[] = "X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:" . $targetUid;
                 }
             }
         }
