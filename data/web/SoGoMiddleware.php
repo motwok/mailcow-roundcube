@@ -351,7 +351,7 @@ class SogoCardDavMiddleware
   </D:prop>
   <C:filter>
     <C:prop-filter name="UID">
-      <C:text-match collation="i;unicode-casemap" match-type="equals">$uuid</C:text-match>
+        <C:text-match match-type="exact">$uuid</C:text-match>
     </C:prop-filter>
   </C:filter>
 </C:addressbook-query>
