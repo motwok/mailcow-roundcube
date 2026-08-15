@@ -230,7 +230,7 @@ class SogoCardDavMiddleware
                 // Fall 1: mailto: - direkt E-Mail
                 if (filter_var($cleanUid, FILTER_VALIDATE_EMAIL)) {
                     $emailParam = $this->escapeVListParameter($cleanUid);
-                    $card = "CARD;FN={$emailParam}:EMAIL={$emailParam};{$cleanUid}";
+                    $card = "CARD;EMAIL={$emailParam};FN={$emailParam}:{$cleanUid}";
                     $vlist[] = $card;
                     $this->logDebug("  -> $card");
                 }
@@ -242,7 +242,7 @@ class SogoCardDavMiddleware
                     if ($contactData && isset($contactData['email'])) {
                         $emailParam = $this->escapeVListParameter($contactData['email']);
                         $fnParam = $this->escapeVListParameter($contactData['fn'] ?? $contactData['email']);
-                        $card = "CARD;FN={$fnParam}:EMAIL={$emailParam};{$cleanUid}";
+                        $card = "CARD;EMAIL={$emailParam};FN={$fnParam}:{$cleanUid}";
                         $vlist[] = $card;
                         $this->logDebug("  -> $card (resolved from CardDAV)");
                     } else {
