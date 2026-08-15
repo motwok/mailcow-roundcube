@@ -22,8 +22,8 @@ class SogoCardDavMiddleware
         $ifHeader = $_SERVER['HTTP_IF'] ?? null;
         $ifMatchHeader = $_SERVER['HTTP_IF_MATCH'] ?? null;
 
-        // Wenn ein vCard 4 Client eine Gruppe hochlädt, konvertieren wir sie für SOGo in VLIST
-        if ($requestMethod === 'PUT' && stripos($requestBody, 'KIND:group') !== false) {
+        // Wenn ein Client eine Gruppe hochlädt (vCard 3.0 oder 4.0), konvertieren wir sie für SOGo in VLIST
+        if ($requestMethod === 'PUT' && (stripos($requestBody, 'KIND:group') !== false || stripos($requestBody, 'X-ADDRESSBOOKSERVER-KIND:group') !== false)) {
             $requestBody = $this->rfc6350ToSogoVlist($requestBody);
         }
 
@@ -93,16 +93,18 @@ class SogoCardDavMiddleware
     }
 
     /**
-     * Konverter Logik: RFC 6350 (vCard 4) Gruppe -> SOGo VLIST
+     * Konverter Logik: RFC 6350 (vCard 3.0/4.0 mit Apple Extensions) Gruppe -> SOGo VLIST
      */
-    private function rfc6350ToSogoVlist(string $vcard4): string 
+    private function rfc6350ToSogoVlist(string $vcard): string 
     {
-        $vcard4 = preg_replace('/[\r\n]+[ \t]/', '', $vcard4); // Unfolding
-        
-        preg_match('/^UID:(.+)$/mi', $vcard4, $uidMatch);
-        preg_match('/^FN:(.+)$/mi', $vcard4, $fnMatch);
-        preg_match('/^REV:(.+)$/mi', $vcard4, $revMatch);
-        preg_match_all('/^MEMBER:(.+)$/mi', $vcard4, $memberMatches);
+        $vcard = preg_replace('/[\r\n]+[ \t]/', '', $vcard); // Unfolding
+
+        preg_match('/^UID:(.+)$/mi', $vcard, $uidMatch);
+        preg_match('/^FN:(.+)$/mi', $vcard, $fnMatch);
+        preg_match('/^REV:(.+)$/mi', $vcard, $revMatch);
+
+        // Unterstütze sowohl vCard 4.0 als auch Apple Extensions (vCard 3.0)
+        preg_match_all('/^(?:MEMBER|X-ADDRESSBOOKSERVER-MEMBER):(.+)$/mi', $vcard, $memberMatches);
 
         $uid = isset($uidMatch[1]) ? trim($uidMatch[1]) : md5(time() . uniqid());
         $fn = isset($fnMatch[1]) ? trim($fnMatch[1]) : 'Gruppe';
@@ -127,7 +129,7 @@ class SogoCardDavMiddleware
     }
 
     /**
-     * Konverter Logik: SOGo VLIST -> RFC 6350 (vCard 4) Gruppe
+     * Konverter Logik: SOGo VLIST -> vCard 3.0 mit Apple Extensions (Roundcube-kompatibel)
      */
     private function sogoVlistToRfc6350(string $vlist): string 
     {
@@ -142,18 +144,18 @@ class SogoCardDavMiddleware
         $uid = isset($uidMatch[1]) ? trim($uidMatch[1]) : null;
         $fn = isset($fnMatch[1]) ? trim($fnMatch[1]) : 'Gruppe';
 
-        // vCard 4.0 Struktur aufbauen (RFC 6350 konforme Reihenfolge)
+        // vCard 3.0 mit Apple Extensions (Roundcube/Sabre-kompatibel)
         $vcard = [];
         $vcard[] = "BEGIN:VCARD";
-        $vcard[] = "VERSION:4.0";
+        $vcard[] = "VERSION:3.0";
 
-        // UID ist in RFC 6350 für vCard 4.0 erforderlich
         if ($uid) {
             $vcard[] = "UID:$uid";
         }
 
         $vcard[] = "FN:$fn";
-        $vcard[] = "KIND:group";
+        $vcard[] = "N:;;;;";
+        $vcard[] = "X-ADDRESSBOOKSERVER-KIND:group";
 
         // Optionale Felder
         if (isset($revMatch[1])) {
@@ -167,11 +169,11 @@ class SogoCardDavMiddleware
                 $params = $matches[1][$index];
 
                 if (preg_match('/EMAIL=([^;:]+)/i', $params, $emailMatch)) {
-                    $vcard[] = "MEMBER:mailto:" . trim($emailMatch[1]);
+                    $vcard[] = "X-ADDRESSBOOKSERVER-MEMBER:mailto:" . trim($emailMatch[1]);
                 } elseif (filter_var($targetUid, FILTER_VALIDATE_EMAIL)) {
-                    $vcard[] = "MEMBER:mailto:" . $targetUid;
+                    $vcard[] = "X-ADDRESSBOOKSERVER-MEMBER:mailto:" . $targetUid;
                 } else {
-                    $vcard[] = "MEMBER:urn:uuid:" . $targetUid;
+                    $vcard[] = "X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:" . $targetUid;
                 }
             }
         }
