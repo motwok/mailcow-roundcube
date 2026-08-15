@@ -211,7 +211,8 @@ class SogoCardDavMiddleware
         foreach (explode("\r\n", $responseHeadersText) as $line) {
             if (strpos($line, ':') !== false) {
                 list($key, $value) = explode(':', $line, 2);
-                $responseHeaders[trim($key)] = trim($value);
+                // Speichere Header-Namen in lowercase für case-insensitive Zugriff
+                $responseHeaders[strtolower(trim($key))] = trim($value);
             }
         }
 
