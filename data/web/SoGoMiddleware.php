@@ -344,12 +344,14 @@ class SogoCardDavMiddleware
         $this->logDebug("--- getUidFromFilename: $filename ---");
 
         // Extrahiere Basispfad
-        if (!preg_match('#^(.*/)([^/]+\.vcf)$#', $requestUri, $matches)) {
-            $this->logDebug("Could not extract base path");
+        if (preg_match('#^(.*/)([^/]*)$#', $requestUri, $matches)) {
+            $basePath = $matches[1];
+        } else {
+            $this->logDebug("Could not extract base path from URI: $requestUri");
             return null;
         }
 
-        $basePath = $matches[1];
+        $this->logDebug("Base path: $basePath");
         $contactUri = $basePath . $filename;
 
         $this->logDebug("Fetching vCard from: $contactUri");
@@ -389,15 +391,14 @@ class SogoCardDavMiddleware
         $this->logDebug("UUID to find: $uuid");
         $this->logDebug("Current request URI: $requestUri");
 
-        // Extrahiere den Adressbuch-Pfad aus der aktuellen URI
-        // Beispiel: /SOGo/dav/user@domain/Contacts/personal/group.vcf
-        // -> /SOGo/dav/user@domain/Contacts/personal/
-        if (!preg_match('#^(.*/)([^/]+\.vcf)$#', $requestUri, $matches)) {
-            $this->logDebug("ERROR: Could not extract base path from URI");
+        // Extrahiere Basispfad
+        if (preg_match('#^(.*/)([^/]*)$#', $requestUri, $matches)) {
+            $basePath = $matches[1];
+        } else {
+            $this->logDebug("Could not extract base path from URI: $requestUri");
             return null;
         }
 
-        $basePath = $matches[1];
         $this->logDebug("Base path: $basePath");
 
         // Versuch 1: Direkter Abruf mit UUID als Dateiname
