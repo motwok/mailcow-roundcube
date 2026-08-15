@@ -124,7 +124,6 @@ class SogoCardDavMiddleware
                     $this->logDebug("Converted vCard in XML", substr($vcard4, 0, 300));
                 }
             }
-            }
             return $dom->saveXML();
         }
 
