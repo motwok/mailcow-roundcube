@@ -9,25 +9,6 @@ location = /auth_roundcube {
 	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 }
 
-location /SOGo/dav/ {
-	fastcgi_pass phpfpm:9000;
-	include fastcgi_params;
-	fastcgi_param SCRIPT_FILENAME /web/SoGoMiddleware.php;
-	fastcgi_param HTTP_HOST $host;
-	fastcgi_param HTTP_X_REAL_IP $remote_addr;
-	fastcgi_param HTTP_X_FORWARDED_FOR $proxy_add_x_forwarded_for;
-	fastcgi_param HTTP_X_FORWARDED_PROTO $scheme;
-
-	fastcgi_pass_header Authorization;
-	fastcgi_pass_header IF;
-	fastcgi_pass_header IF_MATCH;
-	fastcgi_pass_header STATUS;
-
-	fastcgi_read_timeout 300s;
-	fastcgi_send_timeout 300s;
-	fastcgi_buffering off;
-}
-
 location /roundcube/ {
 	auth_request /auth_roundcube;
 
