@@ -179,16 +179,13 @@ class SogoCardDavMiddleware
                 }
                 // Fall 2: urn:uuid: - Kontakt vom CardDAV-Server abrufen
                 else {
-                    // Entferne .vcf Suffix falls vorhanden
-                    $cleanUid = preg_replace('/\.vcf$/i', '', $cleanUid);
-
                     // Versuche Kontakt abzurufen
                     $contactData = $this->fetchContactByUuid($cleanUid);
 
                     if ($contactData && isset($contactData['email'])) {
                         $email = $contactData['email'];
                         $fn = $contactData['fn'] ?? $email;
-                        $card = "CARD;FN={$fn}:EMAIL={$email};{$cleanUid}.";
+                        $card = "CARD;FN={$fn}:EMAIL={$email};{$cleanUid}";
                         $vlist[] = $card;
                         $this->logDebug("  -> $card (resolved from CardDAV)");
                     } else {
@@ -322,7 +319,7 @@ class SogoCardDavMiddleware
         $this->logDebug("Base path: $basePath");
 
         // Versuch 1: Direkter Abruf mit UUID als Dateiname
-        $contactUri = $basePath . $uuid . '.vcf';
+        $contactUri = $basePath . $uuid;
         $this->logDebug("=== Versuch 1: Direct GET ===");
         $this->logDebug("Trying: $contactUri");
 
@@ -337,58 +334,6 @@ class SogoCardDavMiddleware
             $result = $this->extractContactData($response['body']);
             $this->logDebug("========== fetchContactByUuid END (success via GET) ==========");
             return $result;
-        }
-
-        $this->logDebug("Direct fetch failed, trying REPORT...");
-
-        // Versuch 2: REPORT mit addressbook-query
-        $propfindBody = <<<XML
-<?xml version="1.0" encoding="utf-8"?>
-<C:addressbook-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
-  <D:prop>
-    <D:getetag/>
-    <C:address-data/>
-  </D:prop>
-  <C:filter>
-    <C:prop-filter name="UID">
-        <C:text-match match-type="exact">$uuid</C:text-match>
-    </C:prop-filter>
-  </C:filter>
-</C:addressbook-query>
-XML;
-
-        $this->logDebug("=== Versuch 2: REPORT ===");
-        $this->logDebug("Target: $basePath");
-        $this->logDebug("Body:", $propfindBody);
-
-        $response = $this->internalSogoRequest('REPORT', $basePath, $propfindBody);
-
-        $this->logDebug("Response status: {$response['status_code']}");
-        $this->logDebug("Response body:", $response['body']);
-
-        if ($response['status_code'] === 207 && !empty($response['body'])) {
-            libxml_use_internal_errors(true);
-            $dom = new DOMDocument();
-            if ($dom->loadXML($response['body'])) {
-                $xpath = new DOMXPath($dom);
-                $addressDataNodes = $xpath->query('//*[local-name()="address-data"]');
-
-                $this->logDebug("Found address-data nodes: " . ($addressDataNodes ? $addressDataNodes->length : 0));
-
-                if ($addressDataNodes && $addressDataNodes->length > 0) {
-                    $vcard = $addressDataNodes->item(0)->nodeValue;
-                    $this->logDebug("Found vCard via REPORT:", substr($vcard, 0, 500));
-                    $result = $this->extractContactData($vcard);
-                    $this->logDebug("========== fetchContactByUuid END (success via REPORT) ==========");
-                    return $result;
-                } else {
-                    $this->logDebug("No address-data nodes found in XML response");
-                }
-            } else {
-                $this->logDebug("Failed to parse XML response");
-                $errors = libxml_get_errors();
-                $this->logDebug("XML errors:", $errors);
-            }
         }
 
         $this->logDebug("========== fetchContactByUuid END (FAILED) ==========");
