@@ -1,7 +1,7 @@
 location /SOGo/dav/ {
 	fastcgi_pass phpfpm:9000;
 	include fastcgi_params;
-	fastcgi_param SCRIPT_FILENAME /SoGoMiddleware.php;
+	fastcgi_param SCRIPT_FILENAME /web/SoGoMiddleware.php;
 
     proxy_set_header Host $host;
 	proxy_set_header X-Real-IP $remote_addr;
