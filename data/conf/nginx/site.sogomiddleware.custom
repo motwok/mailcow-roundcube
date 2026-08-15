@@ -2,6 +2,8 @@ location /SOGo/dav/ {
 	fastcgi_pass phpfpm:9000;
 	include fastcgi_params;
 	fastcgi_param SCRIPT_FILENAME /web/SoGoMiddleware.php;
+	fastcgi_param SOGO_BACKEND_URL http://sogo:20000
+
 	fastcgi_param HTTP_HOST $host;
 	fastcgi_param HTTP_X_REAL_IP $remote_addr;
 	fastcgi_param HTTP_X_FORWARDED_FOR $proxy_add_x_forwarded_for;
