@@ -35,6 +35,33 @@ class SogoCardDavMiddleware
         error_log("SoGoMiddleware: $message");
     }
 
+    /**
+     * Escaped einen vCard-Wert nach RFC 6350
+     * Escape: \ , ; Newline
+     */
+    private function escapeVCardValue(string $value): string
+    {
+        $value = str_replace('\\', '\\\\', $value); // Backslash zuerst!
+        $value = str_replace(',', '\\,', $value);
+        $value = str_replace(';', '\\;', $value);
+        $value = str_replace("\n", '\\n', $value);
+        $value = str_replace("\r", '', $value); // CR entfernen
+        return $value;
+    }
+
+    /**
+     * Unescaped einen vCard-Wert nach RFC 6350
+     */
+    private function unescapeVCardValue(string $value): string
+    {
+        $value = str_replace('\\n', "\n", $value);
+        $value = str_replace('\\N', "\n", $value);
+        $value = str_replace('\\;', ';', $value);
+        $value = str_replace('\\,', ',', $value);
+        $value = str_replace('\\\\', '\\', $value); // Backslash zuletzt!
+        return $value;
+    }
+
     public function handleRequest(): void 
     {
         $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -112,7 +139,7 @@ class SogoCardDavMiddleware
                 $currentData = $node->nodeValue;
 
                 if (stripos($currentData, 'BEGIN:VLIST') !== false) {
-                    $this->logDebug("Converting VLIST in XML", substr($currentData, 0, 300));
+                    //$this->logDebug("Converting VLIST in XML", substr($currentData, 0, 300));
                     $vcard4 = $this->sogoVlistToRfc6350($currentData);
 
                     // Bestehende Kindknoten löschen, um XML-Integrität zu wahren
@@ -121,7 +148,7 @@ class SogoCardDavMiddleware
                     }
                     // Als CDATA einbetten, damit vCard-Zeilenumbrüche das XML nicht korrumpieren
                     $node->appendChild($dom->createCDATASection($vcard4));
-                    $this->logDebug("Converted vCard in XML", substr($vcard4, 0, 300));
+                    // $this->logDebug("Converted vCard in XML", substr($vcard4, 0, 300));
                 }
             }
             return $dom->saveXML();
@@ -173,7 +200,8 @@ class SogoCardDavMiddleware
 
                 // Fall 1: mailto: - direkt E-Mail
                 if (filter_var($cleanUid, FILTER_VALIDATE_EMAIL)) {
-                    $card = "CARD;EMAIL={$cleanUid};FN={$cleanUid}:{$cleanUid}";
+                    $escapedEmail = $this->escapeVCardValue($cleanUid);
+                    $card = "CARD;FN={$escapedEmail}:EMAIL={$escapedEmail};{$cleanUid}";
                     $vlist[] = $card;
                     $this->logDebug("  -> $card");
                 }
@@ -183,8 +211,8 @@ class SogoCardDavMiddleware
                     $contactData = $this->fetchContactByUuid($cleanUid);
 
                     if ($contactData && isset($contactData['email'])) {
-                        $email = $contactData['email'];
-                        $fn = $contactData['fn'] ?? $email;
+                        $email = $this->escapeVCardValue($contactData['email']);
+                        $fn = $this->escapeVCardValue($contactData['fn'] ?? $contactData['email']);
                         $card = "CARD;FN={$fn}:EMAIL={$email};{$cleanUid}";
                         $vlist[] = $card;
                         $this->logDebug("  -> $card (resolved from CardDAV)");
@@ -253,16 +281,18 @@ class SogoCardDavMiddleware
 
                 $this->logDebug("CARD[$index] params='$params' uid='$targetUid'");
 
-                // Extrahiere EMAIL und FN aus den Parametern
+                // Extrahiere EMAIL und FN aus den Parametern (mit Unescape!)
                 $email = null;
                 $fn = null;
 
                 if (preg_match('/EMAIL=([^;:]+)/i', $params, $emailMatch)) {
-                    $email = trim($emailMatch[1]);
+                    $email = $this->unescapeVCardValue(trim($emailMatch[1]));
                 }
                 if (preg_match('/FN=([^;:]+)/i', $params, $fnMatch)) {
-                    $fn = trim($fnMatch[1]);
+                    $fn = $this->unescapeVCardValue(trim($fnMatch[1]));
                 }
+
+                $this->logDebug("Extracted from params - EMAIL: $email, FN: $fn");
 
                 // Baue MEMBER-Eintrag
                 // Roundcube erwartet: X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:<uid>
@@ -358,10 +388,10 @@ class SogoCardDavMiddleware
         $this->logDebug("FN regex match:", $fnMatch);
         $this->logDebug("EMAIL regex match:", $emailMatch);
 
-        $email = isset($emailMatch[1]) ? trim($emailMatch[1]) : null;
-        $fn = isset($fnMatch[1]) ? trim($fnMatch[1]) : null;
+        $email = isset($emailMatch[1]) ? $this->unescapeVCardValue(trim($emailMatch[1])) : null;
+        $fn = isset($fnMatch[1]) ? $this->unescapeVCardValue(trim($fnMatch[1])) : null;
 
-        $this->logDebug("Extracted - FN: $fn, EMAIL: $email");
+        $this->logDebug("Extracted (after unescape) - FN: $fn, EMAIL: $email");
 
         if ($email || $fn) {
             $this->logDebug("--- extractContactData SUCCESS ---");
