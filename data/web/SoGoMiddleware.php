@@ -192,10 +192,8 @@ class SogoCardDavMiddleware
                         $vlist[] = $card;
                         $this->logDebug("  -> $card (resolved from CardDAV)");
                     } else {
-                        // Fallback: Ohne E-Mail/Name - SOGo wird leeren Eintrag zeigen
-                        $card = "CARD:{$cleanUid}";
-                        $vlist[] = $card;
-                        $this->logDebug("  -> $card (WARNING: Could not resolve contact!)");
+                        // SKIP statt leeres CARD zu senden!
+                        $this->logDebug("  -> SKIPPED! Could not resolve contact $cleanUid - SOGo needs EMAIL+FN!");
                     }
                 }
             }
@@ -310,41 +308,87 @@ class SogoCardDavMiddleware
 
         // Extrahiere den Adressbuch-Pfad aus der aktuellen URI
         // Beispiel: /SOGo/dav/user@domain/Contacts/personal/group.vcf
-        // -> /SOGo/dav/user@domain/Contacts/personal/{uuid}.vcf
+        // -> /SOGo/dav/user@domain/Contacts/personal/
         if (preg_match('#^(.*/)([^/]+\.vcf)$#', $requestUri, $matches)) {
             $basePath = $matches[1];
+
+            $this->logDebug("Searching for contact with UID: $uuid in $basePath");
+
+            // Versuch 1: Direkter Abruf mit UUID als Dateiname
             $contactUri = $basePath . $uuid . '.vcf';
+            $this->logDebug("Trying direct fetch: $contactUri");
+            $response = $this->forwardToSogo('GET', $contactUri, '', null, null);
 
-            $this->logDebug("Fetching contact from: $contactUri");
-
-            try {
-                $response = $this->forwardToSogo('GET', $contactUri, '', null, null);
-
-                if ($response['status_code'] === 200 && !empty($response['body'])) {
-                    $contactVcard = $response['body'];
-
-                    // Extrahiere E-Mail und FN aus dem vCard
-                    preg_match('/^FN:(.+)$/mi', $contactVcard, $fnMatch);
-                    preg_match('/^EMAIL[^:]*:(.+)$/mi', $contactVcard, $emailMatch);
-
-                    $email = isset($emailMatch[1]) ? trim($emailMatch[1]) : null;
-                    $fn = isset($fnMatch[1]) ? trim($fnMatch[1]) : null;
-
-                    if ($email || $fn) {
-                        $this->logDebug("Resolved contact: FN=$fn, EMAIL=$email");
-                        return [
-                            'email' => $email,
-                            'fn' => $fn
-                        ];
-                    }
-                } else {
-                    $this->logDebug("Failed to fetch contact: HTTP {$response['status_code']}");
-                }
-            } catch (Exception $e) {
-                $this->logDebug("Exception fetching contact: " . $e->getMessage());
+            if ($response['status_code'] === 200 && !empty($response['body'])) {
+                return $this->extractContactData($response['body']);
             }
+
+            $this->logDebug("Direct fetch failed (HTTP {$response['status_code']}), trying PROPFIND...");
+
+            // Versuch 2: PROPFIND über das gesamte Adressbuch mit addressbook-query
+            $propfindBody = <<<XML
+<?xml version="1.0" encoding="utf-8"?>
+<C:addressbook-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:carddav">
+  <D:prop>
+    <D:getetag/>
+    <C:address-data/>
+  </D:prop>
+  <C:filter>
+    <C:prop-filter name="UID">
+      <C:text-match collation="i;unicode-casemap" match-type="equals">$uuid</C:text-match>
+    </C:prop-filter>
+  </C:filter>
+</C:addressbook-query>
+XML;
+
+            $this->logDebug("Sending addressbook-query for UID: $uuid");
+            $response = $this->forwardToSogo('REPORT', $basePath, $propfindBody, null, null);
+
+            if ($response['status_code'] === 207 && !empty($response['body'])) {
+                // Parse XML Response
+                libxml_use_internal_errors(true);
+                $dom = new DOMDocument();
+                if ($dom->loadXML($response['body'])) {
+                    $xpath = new DOMXPath($dom);
+                    $addressDataNodes = $xpath->query('//*[local-name()="address-data"]');
+
+                    if ($addressDataNodes && $addressDataNodes->length > 0) {
+                        $vcard = $addressDataNodes->item(0)->nodeValue;
+                        $this->logDebug("Found contact via REPORT", substr($vcard, 0, 200));
+                        return $this->extractContactData($vcard);
+                    }
+                }
+            }
+
+            $this->logDebug("REPORT also failed (HTTP {$response['status_code']})");
         }
 
+        return null;
+    }
+
+    /**
+     * Extrahiert Email und FN aus einem vCard
+     */
+    private function extractContactData(string $vcard): ?array
+    {
+        // Unfolding
+        $vcard = preg_replace('/[\r\n]+[ \t]/', '', $vcard);
+
+        preg_match('/^FN:(.+)$/mi', $vcard, $fnMatch);
+        preg_match('/^EMAIL[^:]*:(.+)$/mi', $vcard, $emailMatch);
+
+        $email = isset($emailMatch[1]) ? trim($emailMatch[1]) : null;
+        $fn = isset($fnMatch[1]) ? trim($fnMatch[1]) : null;
+
+        if ($email || $fn) {
+            $this->logDebug("Extracted: FN=$fn, EMAIL=$email");
+            return [
+                'email' => $email,
+                'fn' => $fn
+            ];
+        }
+
+        $this->logDebug("No FN or EMAIL found in vCard");
         return null;
     }
 
