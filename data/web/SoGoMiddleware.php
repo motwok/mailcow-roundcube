@@ -12,13 +12,27 @@ class SogoCardDavMiddleware
 
     private function logDebug(string $message, $data = null): void
     {
-        $logFile = '/tmp/sogo_middleware_debug.log';
+        // Versuche verschiedene Log-Locations
+        $logLocations = [
+            '/var/log/sogo_middleware_debug.log',
+            '/tmp/sogo_middleware_debug.log',
+            __DIR__ . '/sogo_middleware_debug.log'
+        ];
+
         $timestamp = date('Y-m-d H:i:s');
         $logEntry = "[$timestamp] $message";
         if ($data !== null) {
             $logEntry .= "\n" . print_r($data, true);
         }
-        file_put_contents($logFile, $logEntry . "\n\n", FILE_APPEND);
+
+        foreach ($logLocations as $logFile) {
+            if (@file_put_contents($logFile, $logEntry . "\n\n", FILE_APPEND) !== false) {
+                return; // Erfolgreich geschrieben
+            }
+        }
+
+        // Fallback: error_log wenn alles fehlschlägt
+        error_log("SoGoMiddleware: $message");
     }
 
     public function handleRequest(): void 
