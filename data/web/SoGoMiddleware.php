@@ -7,7 +7,8 @@
 class SogoCardDavMiddleware 
 {
     // Die URL deines echten SOGo-Servers intern
-    private const SOGO_BACKEND_URL = 'http://127.0.0.1:20000'; 
+    // TODO PACK THIS INTO CONFIG FILE
+    private const SOGO_BACKEND_URL = 'http://sogo:20000'; 
 
     public function handleRequest(): void 
     {
