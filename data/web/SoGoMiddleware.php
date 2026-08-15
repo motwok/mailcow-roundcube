@@ -144,10 +144,16 @@ class SogoCardDavMiddleware
         // Unterstütze sowohl vCard 4.0 als auch Apple Extensions (vCard 3.0)
         preg_match_all('/^(?:MEMBER|X-ADDRESSBOOKSERVER-MEMBER):(.+)$/mi', $vcard, $memberMatches);
 
-        $uid = isset($uidMatch[1]) ? trim($uidMatch[1]) : md5(time() . uniqid());
+        $uid = isset($uidMatch[1]) ? trim($uidMatch[1]) : null;
         $fn = isset($fnMatch[1]) ? trim($fnMatch[1]) : 'Gruppe';
 
-        $vlist = ["BEGIN:VLIST", "VERSION:1.0", "UID:$uid", "FN:$fn"];
+        $vlist = [];
+        $vlist[] = "BEGIN:VLIST";
+        $vlist[] = "VERSION:1.0";
+        if ($uid) {
+            $vlist[] = "UID:$uid";
+        }
+        $vlist[] = "FN:$fn";
         if (isset($revMatch[1])) {
             $vlist[] = "REV:" . trim($revMatch[1]);
         }
