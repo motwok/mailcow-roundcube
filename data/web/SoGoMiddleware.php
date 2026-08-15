@@ -326,7 +326,7 @@ class SogoCardDavMiddleware
         $this->logDebug("=== Versuch 1: Direct GET ===");
         $this->logDebug("Trying: $contactUri");
 
-        $response = $this->forwardToSogo('GET', $contactUri, '', null, null);
+        $response = $this->internalSogoRequest('GET', $contactUri);
 
         $this->logDebug("Response status: {$response['status_code']}");
         $this->logDebug("Response body length: " . strlen($response['body']));
@@ -361,7 +361,7 @@ XML;
         $this->logDebug("Target: $basePath");
         $this->logDebug("Body:", $propfindBody);
 
-        $response = $this->forwardToSogo('REPORT', $basePath, $propfindBody, null, null);
+        $response = $this->internalSogoRequest('REPORT', $basePath, $propfindBody);
 
         $this->logDebug("Response status: {$response['status_code']}");
         $this->logDebug("Response body:", $response['body']);
@@ -428,6 +428,59 @@ XML;
 
         $this->logDebug("--- extractContactData FAILED (no FN or EMAIL) ---");
         return null;
+    }
+
+    /**
+     * Interne Methode für CardDAV-Requests (nur Auth-Header, keine Conditional Headers)
+     */
+    private function internalSogoRequest(string $method, string $uri, string $body = ''): array
+    {
+        $ch = curl_init(self::SOGO_BACKEND_URL . $uri);
+
+        $headers = [];
+
+        // Nur notwendige Header weiterleiten (Auth, Content-Type)
+        $allowedHeaders = ['authorization', 'content-type', 'depth'];
+
+        foreach (getallheaders() as $name => $value) {
+            $lowerName = strtolower($name);
+            if (in_array($lowerName, $allowedHeaders)) {
+                $headers[] = "$name: $value";
+            }
+        }
+
+        // Content-Type für CardDAV setzen falls nicht vorhanden
+        if ($method === 'REPORT' && !in_array('content-type', array_map('strtolower', array_keys(getallheaders())))) {
+            $headers[] = "Content-Type: application/xml; charset=utf-8";
+        }
+
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HEADER, true);
+
+        $response = curl_exec($ch);
+        $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $responseHeadersText = substr($response, 0, $headerSize);
+        $responseBody = substr($response, $headerSize);
+
+        $responseHeaders = [];
+        foreach (explode("\r\n", $responseHeadersText) as $line) {
+            if (strpos($line, ':') !== false) {
+                list($key, $value) = explode(':', $line, 2);
+                $responseHeaders[strtolower(trim($key))] = trim($value);
+            }
+        }
+
+        return [
+            'status_code' => $statusCode,
+            'headers' => $responseHeaders,
+            'body' => $responseBody
+        ];
     }
 
     /**
