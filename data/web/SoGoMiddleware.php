@@ -135,6 +135,8 @@ class SogoCardDavMiddleware
      */
     private function rfc6350ToSogoVlist(string $vcard): string 
     {
+        $this->logDebug("=== vCard -> VLIST INPUT ===", $vcard);
+
         $vcard = preg_replace('/[\r\n]+[ \t]/', '', $vcard); // Unfolding
 
         preg_match('/^UID:(.+)$/mi', $vcard, $uidMatch);
@@ -146,6 +148,8 @@ class SogoCardDavMiddleware
 
         $uid = isset($uidMatch[1]) ? trim($uidMatch[1]) : null;
         $fn = isset($fnMatch[1]) ? trim($fnMatch[1]) : 'Gruppe';
+
+        $this->logDebug("vCard parsed - UID: $uid, FN: $fn, Members found: " . count($memberMatches[1]));
 
         $vlist = [];
         $vlist[] = "BEGIN:VLIST";
@@ -159,21 +163,30 @@ class SogoCardDavMiddleware
         }
 
         if (!empty($memberMatches[1])) {
-            $this->logDebug("Found " . count($memberMatches[1]) . " members in group", $memberMatches[1]);
-            foreach ($memberMatches[1] as $member) {
+            $this->logDebug("Found " . count($memberMatches[1]) . " MEMBER entries", $memberMatches[1]);
+            foreach ($memberMatches[1] as $index => $member) {
                 $member = trim($member);
-                $this->logDebug("Processing member", $member);
+                $this->logDebug("MEMBER[$index]: $member");
 
                 $cleanUid = preg_replace('/^(urn:uuid:|mailto:)/i', '', $member);
                 if (filter_var($cleanUid, FILTER_VALIDATE_EMAIL)) {
-                    $vlist[] = "CARD;EMAIL={$cleanUid};FN={$cleanUid}:{$cleanUid}";
+                    $card = "CARD;EMAIL={$cleanUid};FN={$cleanUid}:{$cleanUid}";
+                    $vlist[] = $card;
+                    $this->logDebug("  -> $card");
                 } else {
-                    $vlist[] = "CARD:{$cleanUid}";
+                    $card = "CARD:{$cleanUid}";
+                    $vlist[] = $card;
+                    $this->logDebug("  -> $card (WARNING: No email, only UID!)");
                 }
             }
+        } else {
+            $this->logDebug("WARNING: No MEMBER entries found in vCard!");
         }
+
         $vlist[] = "END:VLIST";
-        return implode("\r\n", $vlist);
+        $result = implode("\r\n", $vlist);
+        $this->logDebug("=== vCard -> VLIST OUTPUT ===", $result);
+        return $result;
     }
 
     /**
@@ -181,12 +194,18 @@ class SogoCardDavMiddleware
      */
     private function sogoVlistToRfc6350(string $vlist): string 
     {
+        $this->logDebug("=== VLIST -> vCard INPUT ===", $vlist);
+
         $vlist = preg_replace('/[\r\n]+[ \t]/', '', $vlist); // Unfolding
 
         preg_match('/^UID:(.+)$/mi', $vlist, $uidMatch);
         preg_match('/^FN:(.+)$/mi', $vlist, $fnMatch);
         preg_match('/^REV:(.+)$/mi', $vlist, $revMatch);
         preg_match_all('/^CARD([^:]*):(.+)$/mi', $vlist, $matches);
+
+        $this->logDebug("VLIST parsed - CARD matches count: " . count($matches[0]));
+        $this->logDebug("CARD params", $matches[1]);
+        $this->logDebug("CARD uids", $matches[2]);
 
         // Pflichtfelder extrahieren
         $uid = isset($uidMatch[1]) ? trim($uidMatch[1]) : null;
@@ -212,22 +231,35 @@ class SogoCardDavMiddleware
 
         // Mitglieder konvertieren
         if (!empty($matches[2])) {
+            $this->logDebug("Converting " . count($matches[2]) . " CARD entries to MEMBER");
             foreach ($matches[2] as $index => $targetUid) {
                 $targetUid = trim($targetUid);
                 $params = $matches[1][$index];
 
+                $this->logDebug("CARD[$index] params='$params' uid='$targetUid'");
+
                 if (preg_match('/EMAIL=([^;:]+)/i', $params, $emailMatch)) {
-                    $vcard[] = "X-ADDRESSBOOKSERVER-MEMBER:mailto:" . trim($emailMatch[1]);
+                    $member = "X-ADDRESSBOOKSERVER-MEMBER:mailto:" . trim($emailMatch[1]);
+                    $vcard[] = $member;
+                    $this->logDebug("  -> $member");
                 } elseif (filter_var($targetUid, FILTER_VALIDATE_EMAIL)) {
-                    $vcard[] = "X-ADDRESSBOOKSERVER-MEMBER:mailto:" . $targetUid;
+                    $member = "X-ADDRESSBOOKSERVER-MEMBER:mailto:" . $targetUid;
+                    $vcard[] = $member;
+                    $this->logDebug("  -> $member");
                 } else {
-                    $vcard[] = "X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:" . $targetUid;
+                    $member = "X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:" . $targetUid;
+                    $vcard[] = $member;
+                    $this->logDebug("  -> $member");
                 }
             }
+        } else {
+            $this->logDebug("WARNING: No CARD entries found in VLIST!");
         }
 
         $vcard[] = "END:VCARD";
-        return implode("\r\n", $vcard);
+        $result = implode("\r\n", $vcard);
+        $this->logDebug("=== VLIST -> vCard OUTPUT ===", $result);
+        return $result;
     }
 
     /**
