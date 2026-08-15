@@ -62,7 +62,9 @@ services:
     volumes:
       - ./mailcow-roundcube/data/conf/nginx/site.roundcube.conf:/etc/nginx/conf.d/site.roundcube.conf:ro,Z
       - ./mailcow-roundcube/data/conf/nginx/site.roundcube.custom:/etc/nginx/conf.d/site.roundcube.custom:ro,Z
+      - ./mailcow-roundcube/data/conf/nginx/site.sogomiddleware.custom:/etc/nginx/conf.d/site.sogomiddleware.custom:ro,Z
 
   php-fpm-mailcow:
     volumes:
       - ./mailcow-roundcube/data/web/rc-auth.php:/web/rc-auth.php:ro,Z
+      - ./mailcow-roundcube/data/web/SoGoMiddleware.php:/web/SoGoMiddleware.php:ro,Z

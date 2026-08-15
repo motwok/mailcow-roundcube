@@ -1,0 +1,25 @@
+location /SOGo/dav/ {
+	proxy_pass http://php-fpm:80/SoGoMiddleware.php;
+
+    proxy_set_header Host $host;
+	proxy_set_header X-Real-IP $remote_addr;
+	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+
+    fastcgi_pass_header Authorization;
+    fastcgi_pass_header IF;
+    fastcgi_pass_header IF_MATCH;
+    fastcgi_pass_header STATUS;
+
+    fastcgi_index proxy.php;
+    include fastcgi_params;
+
+    fastcgi_read_timeout 300s;
+    fastcgi_send_timeout 300s;
+    fastcgi_buffering off;
+}
+
+## Well-Known URLs für automatische Client-Erkennung (iOS / macOS / Thunderbird)
+#location /.well-known/carddav {
+#    return 301 /;
+#}

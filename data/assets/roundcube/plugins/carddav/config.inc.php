@@ -73,7 +73,7 @@ $prefs['Personal'] = [
     'password'     =>  '%p',
     // optional attributes
     // if discovery_url is not specified / null, addressbook discovery is disabled (see extra_addressbooks)
-    'discovery_url'          =>  'http://sogo:20000/SOGo/dav/',
+    'discovery_url'          =>  'http://nginx/SOGo/dav/',
     'rediscover_time' => '00:00:30',
     // hide the account/addressbooks of this preset from CardDAV settings
     'hide' => false,
@@ -88,7 +88,7 @@ $prefs['Personal'] = [
     'active'       =>  true,
     //'readonly'     =>  <true or false>,
     'refresh_time' => '1',
-    'use_categories' => true,
+    'use_categories' => false,
     // 
     //// attributes that are fixed (i.e., not editable by the user) and auto-updated for this preset
     // 'fixed'        =>  [ < 0 or more of the other attribute keys > ],
