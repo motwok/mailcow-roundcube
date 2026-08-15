@@ -1,5 +1,7 @@
 location /SOGo/dav/ {
-	proxy_pass http://phpfpm:80/SoGoMiddleware.php;
+	fastcgi_pass phpfpm:9000;
+	include fastcgi_params;
+	fastcgi_param SCRIPT_FILENAME /SoGoMiddleware.php;
 
     proxy_set_header Host $host;
 	proxy_set_header X-Real-IP $remote_addr;
@@ -10,9 +12,6 @@ location /SOGo/dav/ {
     fastcgi_pass_header IF;
     fastcgi_pass_header IF_MATCH;
     fastcgi_pass_header STATUS;
-
-    fastcgi_index proxy.php;
-    include fastcgi_params;
 
     fastcgi_read_timeout 300s;
     fastcgi_send_timeout 300s;
