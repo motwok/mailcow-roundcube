@@ -32,7 +32,7 @@ $ALLOW_ADMIN_EMAIL_LOGIN = (preg_match(
 $session_var_user_allowed = 'sogo-sso-user-allowed';
 $session_var_pass = 'sogo-sso-pass';
 
-$is_internal_auth = (($_SERVER['RC_AUTH_INTERNAL'] ?? '') === '1');
+$is_internal_auth = (($_SERVER['SOGO_AUTH_INTERNAL'] ?? '') === '1');
 
 if ($is_internal_auth && isset($_SERVER['PHP_AUTH_USER'])) {
   require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/prerequisites.inc.php';
