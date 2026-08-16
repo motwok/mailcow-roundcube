@@ -15,9 +15,9 @@ services:
       - ROUNDCUBEMAIL_REQUEST_PATH=/roundcube
       - ROUNDCUBEMAIL_INSTALL_PLUGINS=1
       - ROUNDCUBEMAIL_COMPOSER_PLUGINS=johndoh/contextmenu
-        # kolab/calendar,kolab/tasklist,
-        #sblaisot/html5_notifier
-        #dump-autoload
+        # kolab/calendar
+        # kolab/tasklist
+        # sblaisot/html5_notifier
 
       - ROUNDCUBEMAIL_PLUGINS=
           markasjunk,
@@ -28,14 +28,13 @@ services:
           subscriptions_option,
           vcard_attachments,
           emoticons,
-          eniugma,
-          carddav,
           contextmenu,
+          carddav,
           mailcow
+      # eniugma,
       # calendar,
       # tasklist,
-      #carddav,
-      #html5_notifier,
+      # html5_notifier,
 
       - MAILCOW_HOSTNAME=${MAILCOW_HOSTNAME:-mailcow}
       - IPV4_NETWORK=${IPV4_NETWORK:-172.22.1}.0/24
