@@ -33,7 +33,9 @@ echo "Roundcube directory: $RC_DIR"
 echo "Mailcow directory: $MAILCOW_DIR"
 echo ""
 
-chmod +x "$RC_DIR/**/*.sh"
+cd "$RC_DIR"
+
+chmod +x **/*.sh
 
 cd "$MAILCOW_DIR"
 

@@ -30,9 +30,10 @@ echo "Roundcube directory: $RC_DIR"
 echo "Mailcow directory: $MAILCOW_DIR"
 echo ""
 
+cd "$RC_DIR"
+
 if [ -d "$RC_DIR/.git" ]; then
     echo "Pulling newest extension files from Git..."
-    cd "$RC_DIR"
     git pull
     echo "-> Extension files updated"
 else
@@ -41,7 +42,7 @@ else
 fi
 echo ""
 
-chmod +x "$RC_DIR/**/*.sh"
+chmod +x **/*.sh
 
 cd "$MAILCOW_DIR"
 
