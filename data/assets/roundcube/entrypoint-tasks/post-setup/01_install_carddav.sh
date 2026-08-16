@@ -40,4 +40,4 @@ composer \
 
 echo "Fix config file for roundcube/carddav plugin"
 # TODO override destination with include
-cp -s ${ROUNDCUBEMAIL_PLUGINS_CONFIG_FOLDER}/plugins/carddav/config.inc.php ${ROUNDCUBEMAIL_COMPOSER_PLUGINS_FOLDER}/plugins/carddav/config.inc.php
+cp ${ROUNDCUBEMAIL_PLUGINS_CONFIG_FOLDER}/plugins/carddav/config.inc.php ${ROUNDCUBEMAIL_COMPOSER_PLUGINS_FOLDER}/plugins/carddav/config.inc.php
