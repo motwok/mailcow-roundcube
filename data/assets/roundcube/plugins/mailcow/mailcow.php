@@ -27,8 +27,8 @@ class mailcow extends rcube_plugin {
     function init() {
         $this->add_hook('startup', array($this, 'startup'));
         $this->add_hook('authenticate', [$this, 'authenticate']);
-        $this->add_hook('login_after', [$this, 'login']);
-        $this->add_hook('logout_after', [$this, 'logout']);
+        $this->add_hook('login_after', [$this, 'login_after']);
+        $this->add_hook('logout_after', [$this, 'logout_after']);
     }
 
     function startup($args) {
@@ -87,12 +87,13 @@ class mailcow extends rcube_plugin {
 
             $args['cookiecheck'] = false;
             $args['valid'] = true;
-        }
 
-        return $args;
+            return $args;
+        }
+        header('Location: /');
     }
 
-    public function login($args)
+    public function login_after($args)
     {
         if ($this->redirect_query) {
             header('Location: ./?' . $this->redirect_query);
@@ -102,7 +103,7 @@ class mailcow extends rcube_plugin {
         return $args;
     }
 
-    public function logout($args)
+    public function logout_after($args)
     {
         $hasLocation = false;
         if (!empty($_SERVER['HTTP_X_AUTH'])) {
