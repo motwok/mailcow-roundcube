@@ -88,7 +88,7 @@ class mailcow extends rcube_plugin {
 
             return $args;
         }
-        header('Location: /');
+        //header('Location: /');
         exit;
     }
 
