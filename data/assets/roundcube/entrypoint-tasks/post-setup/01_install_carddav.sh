@@ -39,5 +39,5 @@ composer \
     roundcube/carddav:~5;
 
 echo "Fix config file for roundcube/carddav plugin"
-rm -f ${ROUNDCUBEMAIL_COMPOSER_PLUGINS_FOLDER}/carddav/config.inc.php
-ln -s  ${ROUNDCUBEMAIL_PLUGINS_CONFIG_FOLDER}/carddav/config.inc.php ${ROUNDCUBEMAIL_PLUGINS_CONFIG_FOLDER}/carddav/config.inc.php
+rm -f ${ROUNDCUBEMAIL_COMPOSER_PLUGINS_FOLDER}/plugins/carddav/config.inc.php
+ln -s  ${ROUNDCUBEMAIL_PLUGINS_CONFIG_FOLDER}/plugins/carddav/config.inc.php ${ROUNDCUBEMAIL_PLUGINS_CONFIG_FOLDER}/plugins/carddav/config.inc.php
