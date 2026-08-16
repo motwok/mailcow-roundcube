@@ -52,8 +52,6 @@ class mailcow extends rcube_plugin {
         $rcmail->add_shutdown_function(['mailcow', 'shutdown']);
 
         if (empty($_SESSION['user_id'])) {
-http_response_code(429);
-exit;
             $args['action'] = 'login';
             $this->redirect_query = $_SERVER['QUERY_STRING'];
         }
