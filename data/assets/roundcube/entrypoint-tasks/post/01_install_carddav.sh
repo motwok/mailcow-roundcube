@@ -36,7 +36,7 @@ composer \
     --optimize-autoloader \
     require \
     -- \
-    roundcube/carddav;
+    roundcube/carddav:~5;
 
 echo "Fix config file for roundcube/carddav plugin"
 rm -f ${ROUNDCUBEMAIL_COMPOSER_PLUGINS_FOLDER}/carddav/config.inc.php
