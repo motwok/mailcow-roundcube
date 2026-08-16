@@ -55,12 +55,16 @@ if [ -d "$RC_DIR/data/hooks" ]; then
         REL_PATH="${SOURCE_PATH#$RC_DIR/data/hooks/}"
         TARGET_PATH="$MAILCOW_DIR/data/hooks/$REL_PATH"
 
+        echo "  Checking: $TARGET_PATH"
         if [ -f "$TARGET_PATH" ]; then
             rm -f "$TARGET_PATH"
+            echo "  -> Removed: $TARGET_PATH"
+        else
+            echo "  -> Not found: $TARGET_PATH"
         fi
     done
 
-    echo "-> Hooks removed"
+    echo "-> Hooks removal completed"
     echo ""
 fi
 
