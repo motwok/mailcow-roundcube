@@ -41,21 +41,21 @@ else
 fi
 echo ""
 
+chmod +x "$RC_DIR/**/*.sh"
+
 cd "$MAILCOW_DIR"
 
 echo "Checking if Roundcube container is configured..."
-if docker compose config --services | grep -q "^roundcube-mailcow$"; then
+if docker compose config --services | grep -q "^roundcube$"; then
     echo "-> Roundcube container found"
     echo ""
     echo "Pulling newest Roundcube Docker image..."
-    docker compose pull roundcube-mailcow
+    docker compose pull roundcube
     echo "-> Image pulled successfully"
 else
     echo "-> Roundcube container not found"
 fi
 echo ""
-
-chmod +x **/*.sh
 
 echo "--------------------------------------------------------"
 echo "Update completed successfully!"

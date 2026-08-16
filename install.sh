@@ -33,6 +33,8 @@ echo "Roundcube directory: $RC_DIR"
 echo "Mailcow directory: $MAILCOW_DIR"
 echo ""
 
+chmod +x "$RC_DIR/**/*.sh"
+
 cd "$MAILCOW_DIR"
 
 echo "Checking installation requirements..."
@@ -137,8 +139,6 @@ else
     echo "-> $EXTENSION_COMPOSE already present in COMPOSE_FILE"
 fi
 echo ""
-
-chmod +x **/*.sh
 
 echo "--------------------------------------------------------"
 echo "Installation completed successfully!"
