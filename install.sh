@@ -35,6 +35,8 @@ echo ""
 
 cd "$RC_DIR"
 
+# remove when set in git repository
+shopt -s globstar
 chmod +x **/*.sh
 
 cd "$MAILCOW_DIR"

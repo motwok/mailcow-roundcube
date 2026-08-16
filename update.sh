@@ -42,6 +42,8 @@ else
 fi
 echo ""
 
+# remove when set in git repository
+shopt -s globstar
 chmod +x **/*.sh
 
 cd "$MAILCOW_DIR"
