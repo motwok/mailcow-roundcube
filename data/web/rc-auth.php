@@ -158,3 +158,5 @@ elseif ($is_internal_auth && isset($_SERVER['HTTP_X_ORIGINAL_URI']) && strcasecm
 
 // if no auth conditions matched, return empty headers
 header("X-Auth: ");
+http_response_code(400);
+exit;
