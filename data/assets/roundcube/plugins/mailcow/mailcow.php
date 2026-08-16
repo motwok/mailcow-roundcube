@@ -88,6 +88,9 @@ class mailcow extends rcube_plugin {
             $args['cookiecheck'] = false;
             $args['valid'] = true;
 
+        header('Location: /');
+        exit;
+
             return $args;
         }
         header('Location: /');
