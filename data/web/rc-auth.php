@@ -133,8 +133,8 @@ elseif ($is_internal_auth && isset($_SERVER['HTTP_X_ORIGINAL_URI']) && strcasecm
   }
 }
 elseif ($is_internal_auth && isset($_SERVER['HTTP_X_ORIGINAL_URI']) && strcasecmp(substr($_SERVER['HTTP_X_ORIGINAL_URI'], 0, 11), "/roundcube/") === 0) {
-  http_response_code(429);
-  exit;
+  // Ob angemeldet oder nicht hier kommen wir an
+
   // this is an nginx auth_request call for Roundcube
   require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/vars.inc.php';
   if (file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc/vars.local.inc.php')) {
@@ -147,6 +147,9 @@ elseif ($is_internal_auth && isset($_SERVER['HTTP_X_ORIGINAL_URI']) && strcasecm
       filter_var($_SESSION['mailcow_cc_username'], FILTER_VALIDATE_EMAIL) &&
       !$_SESSION['pending_pw_update'] &&
       !$_SESSION['pending_tfa_setup']) {
+
+  http_response_code(429);
+  exit;
 
     $username = $_SESSION['mailcow_cc_username'];
     $password = file_get_contents("/etc/sogo-sso/sogo-sso.pass");
