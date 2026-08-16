@@ -20,7 +20,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-TARGET_FILE="/etc/dovecot/sogo_trusted.conf"
+TARGET_FILE="/etc/dovecot/sogo_trusted_io.conf"
 
 echo "Roundcube-trusted-Hook: Waiting for sogo_trusted.conf generation..."
 
