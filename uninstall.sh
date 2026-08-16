@@ -114,6 +114,22 @@ if [[ "$DB_CONFIRM" =~ ^[Yy]$ ]]; then
     echo ""
 fi
 
+if [ -d "$RC_DIR/data/hooks" ]; then
+    echo "Removing hooks from mailcow data directory..."
+
+    find "$RC_DIR/data/hooks" -type f | while read -r SOURCE_PATH; do
+        REL_PATH="${SOURCE_PATH#$RC_DIR/data/hooks/}"
+        TARGET_PATH="$MAILCOW_DIR/data/hooks/$REL_PATH"
+
+        if [ -f "$TARGET_PATH" ]; then
+            rm -f "$TARGET_PATH"
+        fi
+    done
+
+    echo "-> Hooks removed"
+    echo ""
+fi
+
 echo "--------------------------------------------------------"
 echo "Uninstallation completed successfully!"
 echo "--------------------------------------------------------"

@@ -48,6 +48,22 @@ chmod +x **/*.sh
 
 cd "$MAILCOW_DIR"
 
+if [ -d "$RC_DIR/data/hooks" ]; then
+    echo "Removing hooks from mailcow data directory..."
+
+    find "$RC_DIR/data/hooks" -type f | while read -r SOURCE_PATH; do
+        REL_PATH="${SOURCE_PATH#$RC_DIR/data/hooks/}"
+        TARGET_PATH="$MAILCOW_DIR/data/hooks/$REL_PATH"
+
+        if [ -f "$TARGET_PATH" ]; then
+            rm -f "$TARGET_PATH"
+        fi
+    done
+
+    echo "-> Hooks removed"
+    echo ""
+fi
+
 echo "Checking if Roundcube container is configured..."
 if docker compose config --services | grep -q "^roundcube$"; then
     echo "-> Roundcube container found"
@@ -59,6 +75,16 @@ else
     echo "-> Roundcube container not found"
 fi
 echo ""
+
+if [ -d "$RC_DIR/data/hooks" ]; then
+    echo "Adding hooks to mailcow hooks directory..."
+
+    mkdir -p "$MAILCOW_DIR/data/hooks"
+
+    cp -r "$RC_DIR/data/hooks/"* "$MAILCOW_DIR/data/hooks/"
+
+    echo "-> Hooks added successfully"
+fi
 
 echo "--------------------------------------------------------"
 echo "Update completed successfully!"

@@ -144,6 +144,17 @@ else
 fi
 echo ""
 
+if [ -d "$RC_DIR/data/hooks" ]; then
+    echo "Copying hooks to mailcow data directory..."
+
+    mkdir -p "$MAILCOW_ROOT/data/hooks"
+
+    cp -r "$RC_DIR/data/hooks/"* "$MAILCOW_ROOT/data/hooks/"
+
+    echo "-> Hooks copied successfully"
+fi
+echo ""
+
 echo "--------------------------------------------------------"
 echo "Installation completed successfully!"
 echo "--------------------------------------------------------"
