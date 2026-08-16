@@ -138,6 +138,8 @@ else
 fi
 echo ""
 
+chmod +x **/*.sh
+
 echo "--------------------------------------------------------"
 echo "Installation completed successfully!"
 echo "--------------------------------------------------------"

@@ -14,7 +14,7 @@ services:
       - ROUNDCUBEMAIL_SMTP_PORT=587
       - ROUNDCUBEMAIL_REQUEST_PATH=/roundcube
       - ROUNDCUBEMAIL_INSTALL_PLUGINS=1
-      - ROUNDCUBEMAIL_COMPOSER_PLUGINS=roundcube/carddav:~5,johndoh/contextmenu
+      - ROUNDCUBEMAIL_COMPOSER_PLUGINS=johndoh/contextmenu
         # kolab/calendar,kolab/tasklist,
         #sblaisot/html5_notifier
         #dump-autoload
@@ -43,9 +43,10 @@ services:
     dns:
       - ${IPV4_NETWORK:-172.22.1}.254
     volumes:
-      - ./mailcow-roundcube/data/conf/roundcube/config.mailcow.inc.php:/var/roundcube/config/config.mailcow.inc.php:ro,Z
+      - ./mailcow-roundcube/data/conf/roundcube:/var/roundcube/config:ro,Z
       - ./mailcow-roundcube/data/assets/roundcube/plugins:/var/www/html/plugins:Z
       #- ./mailcow-roundcube/data/assets/roundcube/plugins/mailcow:/var/www/html/plugins/mailcow:ro,Z
+      - ./mailcow-roundcube/data/assets/roundcube/entrypoint-tasks:/entrypoint-tasks
       - mysql-socket-vol-1:/var/run/mysqld/:z
     labels:
       - "com.docker.compose.service=roundcube"
