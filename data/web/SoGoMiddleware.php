@@ -1,16 +1,13 @@
 <?php
 
-/**
- * SOGo <-> vCard 4.0 (RFC 6350) Replikations-Middleware
- * Version 2.0 - Mit HTTP-Condition- und Token-Absicherung
- */
 class SogoCardDavMiddleware 
 {
     private string $sogoBackendUrl;
 
     public function __construct()
     {
-        if (!isset($_SERVER['SOGO_BACKEND_URL']) || empty($_SERVER['SOGO_BACKEND_URL'])) {
+        if (!isset($_SERVER['SOGO_BACKEND_URL']) || 
+            empty($_SERVER['SOGO_BACKEND_URL'])) {
             throw new RuntimeException('SOGO_BACKEND_URL is not set.');
         }
         $this->sogoBackendUrl = $_SERVER['SOGO_BACKEND_URL'];
@@ -18,19 +15,15 @@ class SogoCardDavMiddleware
 
     private function logDebug(string $message, $data = null): void
     {
-        $timestamp = date('Y-m-d H:i:s');
-        $logEntry = "[$timestamp] $message";
-        if ($data !== null) {
-            $logEntry .= "\n" . print_r($data, true);
-        }
-        $logFile = '/tmp/sogo_middleware_debug.log';
-        @file_put_contents($logFile, $logEntry . "\n\n", FILE_APPEND);
+        // $timestamp = date('Y-m-d H:i:s');
+        // $logEntry = "[$timestamp] $message";
+        // if ($data !== null) {
+        //     $logEntry .= "\n" . print_r($data, true);
+        // }
+        // $logFile = '/tmp/sogo_middleware_debug.log';
+        // @file_put_contents($logFile, $logEntry . "\n\n", FILE_APPEND);
     }
 
-    /**
-     * Escaped einen vCard-Wert nach RFC 6350
-     * Escape: \ , ; Newline
-     */
     private function escapeVCardValue(string $value): string
     {
         $value = str_replace('\\', '\\\\', $value);
@@ -47,7 +40,7 @@ class SogoCardDavMiddleware
         $value = str_replace('\\N', "\n", $value);
         $value = str_replace('\\;', ';', $value);
         $value = str_replace('\\,', ',', $value);
-        $value = str_replace('\\\\', '\\', $value); // Backslash zuletzt!
+        $value = str_replace('\\\\', '\\', $value);
         return $value;
     }
 
@@ -77,7 +70,9 @@ class SogoCardDavMiddleware
         $requestUri = $_SERVER['REQUEST_URI'] ?? '';
         $requestBody = file_get_contents('php://input');
 
-        if ($requestMethod === 'PUT' && (stripos($requestBody, 'KIND:group') !== false || stripos($requestBody, 'X-ADDRESSBOOKSERVER-KIND:group') !== false)) {
+        if ($requestMethod === 'PUT' && 
+            (stripos($requestBody, 'KIND:group') !== false || 
+             stripos($requestBody, 'X-ADDRESSBOOKSERVER-KIND:group') !== false)) {
             $requestBody = $this->rfc6350ToSogoVlist($requestBody);
         }
 
@@ -92,7 +87,9 @@ class SogoCardDavMiddleware
             return;
         }
 
-        if (!empty($responseBody) && (stripos($contentType, 'xml') !== false || stripos(trim($responseBody), '<?xml') === 0)) {
+        if (!empty($responseBody) && 
+            (stripos($contentType, 'xml') !== false || 
+             stripos(trim($responseBody), '<?xml') === 0)) {
             $responseBody = $this->processXmlResponse($responseBody);
         }
         elseif (stripos($responseBody, 'BEGIN:VLIST') !== false) {
@@ -106,8 +103,8 @@ class SogoCardDavMiddleware
     {
         libxml_use_internal_errors(true);
         $dom = new DOMDocument();
+
         if (!$dom->loadXML($xmlString, LIBXML_NOBLANKS | LIBXML_NOCDATA)) {
-            $this->logDebug("Could not load XML form body, no processing performed");
             return $xmlString; 
         }
 
@@ -137,12 +134,16 @@ class SogoCardDavMiddleware
     {
         $this->logDebug("=== vCard -> VLIST INPUT ===", $vcard);
 
-        $vcard = preg_replace('/[\r\n]+[ \t]/', '', $vcard); // Unfolding
+        $vcard = preg_replace('/[\r\n]+[ \t]/', '', $vcard);
 
         preg_match('/^UID:(.+)$/mi', $vcard, $uidMatch);
         preg_match('/^FN:(.+)$/mi', $vcard, $fnMatch);
         preg_match('/^REV:(.+)$/mi', $vcard, $revMatch);
-        preg_match_all('/^(?:MEMBER|X-ADDRESSBOOKSERVER-MEMBER):(.+)$/mi', $vcard, $memberMatches);
+        preg_match_all(
+            '/^(?:MEMBER|X-ADDRESSBOOKSERVER-MEMBER):(.+)$/mi', 
+            $vcard, 
+            $memberMatches
+        );
 
         $uid = isset($uidMatch[1]) ? trim($uidMatch[1]) : null;
         $fn = isset($fnMatch[1]) ? trim($fnMatch[1]) : 'Gruppe';
@@ -152,6 +153,7 @@ class SogoCardDavMiddleware
         $vlist[] = "VERSION:1.0";
         $vlist[] = "UID:$uid";
         $vlist[] = "FN:$fn";
+
         if (isset($revMatch[1])) {
             $vlist[] = "REV:" . trim($revMatch[1]);
         }
@@ -173,18 +175,20 @@ class SogoCardDavMiddleware
                     $contactData = $this->fetchContactByUuid($uuid);
 
                     if ($contactData && isset($contactData['email'])) {
-                        $emailParam = $this->escapeVListParameter($contactData['email']);
-                        $fnParam = $this->escapeVListParameter($contactData['fn'] ?? $contactData['email']);
-                        $filename = (stripos($uuid, '.vcf') === false) ? ($uuid . '.vcf') : $uuid;
-                        $card = "CARD;EMAIL={$emailParam};FN={$fnParam}:{$filename}";
+                        $email = $this->escapeVListParameter($contactData['email']);
+                        $fn = $this->escapeVListParameter(
+                            $contactData['fn'] ?? $contactData['email']
+                        );
+                        $filename = (stripos($uuid, '.vcf') === false) 
+                            ? ($uuid . '.vcf') 
+                            : $uuid;
+                        $card = "CARD;EMAIL={$email};FN={$fn}:{$filename}";
                         $vlist[] = $card;
-                    } else {
-                        $this->logDebug("  -> SKIPPED! Could not resolve contact $uuid - SOGo needs EMAIL+FN!");
                     }
                     continue;
                 }
 
-                $this->logDebug("  -> SKIPPED! Unknown member format: $member");
+                $this->logDebug("WARNING: Unknown member format: $member");
             }
         }
 
@@ -198,14 +202,13 @@ class SogoCardDavMiddleware
     {
         $this->logDebug("=== VLIST -> vCard INPUT ===", $vlist);
 
-        $vlist = preg_replace('/[\r\n]+[ \t]/', '', $vlist); // Unfolding
+        $vlist = preg_replace('/[\r\n]+[ \t]/', '', $vlist);
 
         preg_match('/^UID:(.+)$/mi', $vlist, $uidMatch);
         preg_match('/^FN:(.+)$/mi', $vlist, $fnMatch);
         preg_match('/^REV:(.+)$/mi', $vlist, $revMatch);
         preg_match_all('/^CARD([^:]*):(.+)$/mi', $vlist, $matches);
 
-        // Pflichtfelder extrahieren
         $uid = isset($uidMatch[1]) ? trim($uidMatch[1]) : null;
         $fn = isset($fnMatch[1]) ? trim($fnMatch[1]) : 'Gruppe';
 
@@ -213,7 +216,6 @@ class SogoCardDavMiddleware
         $vcard[] = "BEGIN:VCARD";
         $vcard[] = "VERSION:3.0";
         $vcard[] = "UID:$uid";
-
         $vcard[] = "FN:$fn";
         $vcard[] = "N:;;;;";
         $vcard[] = "X-ADDRESSBOOKSERVER-KIND:group";
@@ -224,18 +226,17 @@ class SogoCardDavMiddleware
 
         if (!empty($matches[2])) {
             foreach ($matches[2] as $index => $targetFilename) {
-                $targetFilename = trim($targetFilename);
+                $targetFilename = $this->unescapeVListParameter(trim($targetFilename));
                 $params = trim($matches[1][$index]);
 
                 $contactData = $this->fetchContactByUuid($targetFilename);
+
                 if ($contactData && isset($contactData['uid'])) {
                     $actualUid = $this->escapeVCardValue($contactData['uid']);
-                    $member = "X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:" . $actualUid;
+                    $member = "X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:{$actualUid}";
                     $vcard[] = $member;
-                }
-                else {
-                    $this->logDebug("WARNING: Could not get UID for filename: $targetFilename - skipping");
-                    continue;
+                } else {
+                    $this->logDebug("WARNING: Could not get UID for: $targetFilename");
                 }
             }
         }
@@ -248,12 +249,9 @@ class SogoCardDavMiddleware
 
     private function fetchContactByUuid(string $uuid): ?array
     {
-        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
-        if (preg_match('#^(.*/)([^/]*)$#', $requestUri, $matches)) {
+        $basePath = $_SERVER['REQUEST_URI'] ?? '';
+        if (preg_match('#^(.*/)([^/]*)$#', $basePath, $matches)) {
             $basePath = $matches[1];
-        } else {
-            $this->logDebug("Could not extract base path from URI: $requestUri");
-            return null;
         }
 
         $contactFilename = (stripos($uuid, '.vcf') === false) ? ($uuid . '.vcf') : $uuid;
