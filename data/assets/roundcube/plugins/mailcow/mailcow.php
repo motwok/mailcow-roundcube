@@ -91,6 +91,7 @@ class mailcow extends rcube_plugin {
             return $args;
         }
         header('Location: /');
+        exit;
     }
 
     public function login_after($args)
