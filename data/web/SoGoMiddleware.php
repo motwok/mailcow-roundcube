@@ -172,12 +172,13 @@ class SogoCardDavMiddleware
                 }
                 // Fall 2: urn:uuid: - Kontakt vom CardDAV-Server abrufen
                 else {
+                    $contactFilename = (stripos($cleanUid, '.vcf') === false) ? ($cleanUid . '.vcf') : $cleanUid;
                     $contactData = $this->fetchContactByUuid($cleanUid);
 
                     if ($contactData && isset($contactData['email'])) {
                         $emailParam = $this->escapeVListParameter($contactData['email']);
                         $fnParam = $this->escapeVListParameter($contactData['fn'] ?? $contactData['email']);
-                        $card = "CARD;EMAIL={$emailParam};FN={$fnParam}:{$cleanUid}";
+                        $card = "CARD;EMAIL={$emailParam};FN={$fnParam}:{$contactFilename}";
                         $vlist[] = $card;
                     } else {
                         // SKIP statt leeres CARD zu senden!
