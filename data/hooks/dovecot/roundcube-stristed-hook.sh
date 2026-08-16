@@ -20,15 +20,15 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-TARGET_FILE="/etc/dovecot/sogo-sso.conf"
+TARGET_FILE="/etc/dovecot/sogo_trusted.conf"
 
-echo "Roundcube-SSO-Hook: Waiting for sogo-sso.conf generation..."
+echo "Roundcube-trusted-Hook: Waiting for sogo_trusted.conf generation..."
 
 while [ ! -s "$TARGET_FILE" ]; do
   sleep 0.5
 done
 
-echo "Roundcube-SSO-Hook: Modifying sogo-sso.conf for IP .100..."
+echo "Roundcube-trusted-Hook: Modifying sogo_trusted.conf for IP .100..."
 cat "$TARGET_FILE" | sed 's/\.248\//.100\//g' >> "$TARGET_FILE"
 
-echo "Roundcube-SSO-Hook: Done."
+echo "Roundcube-trusted-Hook: Done."

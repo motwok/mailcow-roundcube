@@ -84,6 +84,7 @@ if [ -d "$RC_DIR/data/hooks" ]; then
     cp -r "$RC_DIR/data/hooks/"* "$MAILCOW_DIR/data/hooks/"
 
     echo "-> Hooks added successfully"
+    echo ""
 fi
 
 echo "--------------------------------------------------------"
