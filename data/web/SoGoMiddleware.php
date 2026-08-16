@@ -160,31 +160,31 @@ class SogoCardDavMiddleware
             foreach ($memberMatches[1] as $index => $member) {
                 $member = trim($member);
 
-                // TODO Den COde cann keine Sau lesen
-                // Extrahiere mailto: oder urn:uuid:
-                $cleanUid = preg_replace('/^(urn:uuid:|mailto:)/i', '', $member);
-
-                // Fall 1: mailto: - direkt E-Mail
-                if (filter_var($cleanUid, FILTER_VALIDATE_EMAIL)) {
-                    $emailParam = $this->escapeVListParameter($cleanUid);
-                    $card = "CARD;EMAIL={$emailParam};FN={$emailParam}:{$cleanUid}";
+                if (preg_match('/^mailto:(.+)$/i', $member, $emailMatch)) {
+                    $email = trim($emailMatch[1]);
+                    $emailParam = $this->escapeVListParameter($email);
+                    $card = "CARD;EMAIL={$emailParam};FN={$emailParam}:{$email}";
                     $vlist[] = $card;
+                    continue;
                 }
-                // Fall 2: urn:uuid: - Kontakt vom CardDAV-Server abrufen
-                else {
-                    $contactFilename = (stripos($cleanUid, '.vcf') === false) ? ($cleanUid . '.vcf') : $cleanUid;
-                    $contactData = $this->fetchContactByUuid($cleanUid);
+
+                if (preg_match('/^urn:uuid:(.+)$/i', $member, $uuidMatch)) {
+                    $uuid = trim($uuidMatch[1]);
+                    $contactData = $this->fetchContactByUuid($uuid);
 
                     if ($contactData && isset($contactData['email'])) {
                         $emailParam = $this->escapeVListParameter($contactData['email']);
                         $fnParam = $this->escapeVListParameter($contactData['fn'] ?? $contactData['email']);
-                        $card = "CARD;EMAIL={$emailParam};FN={$fnParam}:{$contactFilename}";
+                        $filename = (stripos($uuid, '.vcf') === false) ? ($uuid . '.vcf') : $uuid;
+                        $card = "CARD;EMAIL={$emailParam};FN={$fnParam}:{$filename}";
                         $vlist[] = $card;
                     } else {
-                        // SKIP statt leeres CARD zu senden!
-                        $this->logDebug("  -> SKIPPED! Could not resolve contact $cleanUid - SOGo needs EMAIL+FN!");
+                        $this->logDebug("  -> SKIPPED! Could not resolve contact $uuid - SOGo needs EMAIL+FN!");
                     }
+                    continue;
                 }
+
+                $this->logDebug("  -> SKIPPED! Unknown member format: $member");
             }
         }
 
