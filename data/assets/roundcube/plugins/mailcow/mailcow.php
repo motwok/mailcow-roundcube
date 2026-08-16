@@ -25,7 +25,7 @@ class mailcow extends rcube_plugin {
     private $redirect_query;
 
     function init() {
-        $this->add_hook('startup', array($this, 'startup'));
+        $this->add_hook('startup', [$this, 'startup']);
         $this->add_hook('authenticate', [$this, 'authenticate']);
         $this->add_hook('login_after', [$this, 'login_after']);
         $this->add_hook('logout_after', [$this, 'logout_after']);
@@ -49,26 +49,24 @@ class mailcow extends rcube_plugin {
             ], 'taskbar');
         }
 
-        if (!empty($_SERVER['PHP_AUTH_USER'])) {
-            $rcmail->add_shutdown_function(['mailcow', 'shutdown']);
+        $rcmail->add_shutdown_function(['mailcow', 'shutdown']);
 
-            if (empty($_SESSION['user_id'])) {
+        if (empty($_SESSION['user_id'])) {
+            $args['action'] = 'login';
+            $this->redirect_query = $_SERVER['QUERY_STRING'];
+        }
+        elseif( !empty($_SERVER['HTTP_X_AUTH'])) {
+            $xauth = $_SERVER['HTTP_X_AUTH'];
+            $xauth = str_replace('Basic ', '', $xauth);
+            $decoded = base64_decode($xauth);
+            list($user, $pass) = explode(':', $decoded, 2);
+
+            if( $_SESSION['user'] !== $user ) {
                 $args['action'] = 'login';
                 $this->redirect_query = $_SERVER['QUERY_STRING'];
             }
-            elseif (empty($_SESSION['password']) && !empty($_SERVER['HTTP_X_AUTH'])) {
-                $xauth = $_SERVER['HTTP_X_AUTH'];
-                $xauth = str_replace('Basic ', '', $xauth);
-                $decoded = base64_decode($xauth);
-                list($user, $pass) = explode(':', $decoded, 2);
-
-                if( $_SESSION['user'] !== $user ) {
-                    $args['action'] = 'login';
-                    $this->redirect_query = $_SERVER['QUERY_STRING'];
-                }
-                else {
-                    $_SESSION['password'] = $rcmail->encrypt($pass);
-                }
+            else {
+                $_SESSION['password'] = $rcmail->encrypt($pass);
             }
         }
 
@@ -87,9 +85,6 @@ class mailcow extends rcube_plugin {
 
             $args['cookiecheck'] = false;
             $args['valid'] = true;
-
-        header('Location: /');
-        exit;
 
             return $args;
         }
