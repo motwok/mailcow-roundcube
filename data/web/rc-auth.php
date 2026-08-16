@@ -148,9 +148,7 @@ elseif ($is_internal_auth && isset($_SERVER['HTTP_X_ORIGINAL_URI']) && strcasecm
       !$_SESSION['pending_pw_update'] &&
       !$_SESSION['pending_tfa_setup']) {
 
-  http_response_code(429);
-  exit;
-
+      // Das wird ausgeführt wenn wir angemeldet sind.
     $username = $_SESSION['mailcow_cc_username'];
     $password = file_get_contents("/etc/sogo-sso/sogo-sso.pass");
 

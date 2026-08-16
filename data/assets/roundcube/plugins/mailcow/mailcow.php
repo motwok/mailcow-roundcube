@@ -52,10 +52,14 @@ class mailcow extends rcube_plugin {
         $rcmail->add_shutdown_function(['mailcow', 'shutdown']);
 
         if (empty($_SESSION['user_id'])) {
+http_response_code(429);
+exit;
             $args['action'] = 'login';
             $this->redirect_query = $_SERVER['QUERY_STRING'];
         }
         elseif( !empty($_SERVER['HTTP_X_AUTH'])) {
+http_response_code(404);
+exit;
             $xauth = $_SERVER['HTTP_X_AUTH'];
             $xauth = str_replace('Basic ', '', $xauth);
             $decoded = base64_decode($xauth);
@@ -75,6 +79,8 @@ class mailcow extends rcube_plugin {
 
     function authenticate($args) {
         if (!empty($_SERVER['HTTP_X_AUTH'])) {
+http_response_code(409);
+exit;
             $xauth = $_SERVER['HTTP_X_AUTH'];
             $xauth = str_replace('Basic ', '', $xauth);
             $decoded = base64_decode($xauth);
