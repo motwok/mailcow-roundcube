@@ -247,20 +247,34 @@ class SogoCardDavMiddleware
         return $result;
     }
 
-    private function fetchContactByUuid(string $uuid): ?array
+    private function fetchContactByUuid(string $contactFilename): ?array
     {
+        $contactFilename = 
+            (stripos($contactFilename, '.vcf') === false)
+             ? ($contactFilename . '.vcf') : $contactFilename;
+
+        $cacheKey = "contact_uid_{$contactFilename}";
+    
+        if (apcu_exists($cacheKey)) {
+            return apcu_fetch($cacheKey);
+        }
+
         $basePath = $_SERVER['REQUEST_URI'] ?? '';
         if (preg_match('#^(.*/)([^/]*)$#', $basePath, $matches)) {
             $basePath = $matches[1];
         }
 
-        $contactFilename = (stripos($uuid, '.vcf') === false) ? ($uuid . '.vcf') : $uuid;
         $contactUri = $basePath . $contactFilename;
 
         $response = $this->internalSogoRequest('GET', $contactUri);
 
         if ($response['status_code'] === 200 && !empty($response['body'])) {
             $result = $this->extractContactData($response['body']);
+
+            if ($result !== null) {
+                apcu_store($cacheKey, $result, 300);
+            }
+
             return $result;
         }
 
