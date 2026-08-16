@@ -1,22 +1,23 @@
 {
-    "name": "mailcow/roundcube-mailcow",
-    "type": "roundcube-plugin",
-    "description": "Mailcow SSO integration and UI link for Roundcube",
-    "license": "AGPL-3.0-or-later",
-    "version": "1.0.0",
-    "authors": [
-        {
-            "name": "Emmo Emminghaus",
-            "email": "mo2000@mo2000.de"
-        }
-    ],
-    "require": {
-        "php": ">=7.4.0",
-        "roundcube/plugin-installer": ">=0.1.3"
-    },
-    "extra": {
-        "roundcube": {
-            "min-version": "1.6.0"
-        }
+  "name": "mailcow/roundcube-mailcow",
+  "type": "roundcube-plugin",
+  "description": "Mailcow integration",
+  "license": "AGPL-3.0-or-later",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "Emmo Emminghaus",
+      "email": "mo2000@mo2000.de",
+      "role": "Lead"
     }
+  ],
+  "require": {
+    "php": ">=7.3.0",
+    "roundcube/plugin-installer": "~0.3.5"
+  },
+  "autoload": {
+    "classmap": [
+      "mailcow.php"
+    ]
+  }
 }

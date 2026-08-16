@@ -32,13 +32,9 @@ $ALLOW_ADMIN_EMAIL_LOGIN = (preg_match(
 $session_var_user_allowed = 'sogo-sso-user-allowed';
 $session_var_pass = 'sogo-sso-pass';
 
-// only the internal nginx auth_request loopback (127.0.0.1:65510) sets this;
-// external clients can never supply it (bare fastcgi param, not an HTTP header)
 $is_internal_auth = (($_SERVER['SOGO_AUTH_INTERNAL'] ?? '') === '1');
 
-// validate credentials for basic auth requests
 if ($is_internal_auth && isset($_SERVER['PHP_AUTH_USER'])) {
-  // load prerequisites only when required
   require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/prerequisites.inc.php';
 
   $username = $_SERVER['PHP_AUTH_USER'];
@@ -46,24 +42,15 @@ if ($is_internal_auth && isset($_SERVER['PHP_AUTH_USER'])) {
 
   $login_check = check_login($username, $password, array('service' => $service));
   if ($login_check === 'user') {
-    $display_name = '';
-    $user_details = user_get_alias_details($username);
-    if ($user_details !== false && isset($user_details['name'])) {
-      $display_name = $user_details['name'];
-    }
-    header("X-User: $username");
     header("X-Auth: Basic ".base64_encode("$username:$password"));
-    header("X-Auth-Type: Basic");
-    header("X-Display-Name: $display_name");
-    exit;
   } else {
     http_response_code(401);
     header("WWW-Authenticate: Basic realm=\"Mailcow\"");
-    exit;
   }
+  exit;
 }
 // check permissions and redirect for direct GET ?login=xy requests
-elseif (isset($_GET['login'])) {
+if (isset($_GET['login'])) {
   // load prerequisites only when required
   require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/prerequisites.inc.php';
   // check if dual_login is active
@@ -133,14 +120,11 @@ elseif ($is_internal_auth && isset($_SERVER['HTTP_X_ORIGINAL_URI']) && strcasecm
     ) {
       $username = $email;
       $password = file_get_contents("/etc/sogo-sso/sogo-sso.pass");
-      header("X-User: $username");
       header("X-Auth: Basic ".base64_encode("$username:$password"));
-      header("X-Auth-Type: Basic");
       exit;
     }
   }
 }
-// check for Roundcube SSO requests
 elseif ($is_internal_auth && isset($_SERVER['HTTP_X_ORIGINAL_URI']) && strcasecmp(substr($_SERVER['HTTP_X_ORIGINAL_URI'], 0, 11), "/roundcube/") === 0) {
   // this is an nginx auth_request call for Roundcube
   require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/vars.inc.php';
@@ -158,19 +142,7 @@ elseif ($is_internal_auth && isset($_SERVER['HTTP_X_ORIGINAL_URI']) && strcasecm
     $username = $_SESSION['mailcow_cc_username'];
     $password = file_get_contents("/etc/sogo-sso/sogo-sso.pass");
 
-    // load prerequisites for user details
-    require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/prerequisites.inc.php';
-    $display_name = '';
-    $user_details = user_get_alias_details($username);
-    if ($user_details !== false && isset($user_details['name'])) {
-      $display_name = $user_details['name'];
-    }
-
-    // Return credentials as headers (nginx will pass them to Roundcube)
-    header("X-User: $username");
     header("X-Auth: Basic ".base64_encode("$username:$password"));
-    header("X-Auth-Type: Basic");
-    header("X-Display-Name: $display_name");
     exit;
   }
 }

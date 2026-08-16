@@ -21,13 +21,17 @@ THIS IS AN UNOFFICIAL EXTENSION. IT IS NOT SUPPORTED BY THE MAILCOW TEAM.
 
 ## What this project does
 
-- Adds a `roundcube-mailcow` service via `docker-compose.extension.yml`
-- Mounts custom Roundcube and Nginx configuration from this repository
+- Adds a `roundcube` service via `docker-compose.extension.yml`
+- Adds access to Roundcube via `/roundcube` path on the Mailcow hostname
+- Adds a middleware via nginy to translate sogo groups from and 
+to VCARD Version 3/4 with Apple Extensions
 - Provides install, update, and uninstall automation scripts
-- Integrates Roundcube with Mailcow OAuth/client configuration
 - Includes optional Roundcube plugins:
-  - `mailcow_link`: adds a "Mailcow UI" button in the Roundcube taskbar
-  - `simple_smime`: adds S/MIME certificate upload and server-side mail signing
+  - `mailcow`: adds a "Mailcow UI" button in the Roundcube taskbar
+
+### TODOs
+- Integrates Roundcube with Mailcow client configuration
+- Add Authentication via Mailcow SSO
 
 ## Repository layout
 
@@ -68,21 +72,12 @@ bash install.sh
 
 The installer will:
 
-1. Validate required files
-2. Read `MAILCOW_HOSTNAME` from `mailcow.conf`
-3. Ensure Roundcube DB password exists
-4. Read or generate OAuth client credentials
-5. Create Roundcube DB/user and optionally inject OAuth client
-6. Write Mailcow UI app override
-7. Update `COMPOSE_FILE` in `mailcow.conf`
+1. Validate required files and running services
+2. Ensure Roundcube DB password exists in `mailcow.conf` (or generate one)
+3. Create Roundcube DB/user
+4. Update `COMPOSE_FILE` in `mailcow.conf`, adding loading of `docker-compose.extension.yml`
+5. Optional restart Mailcow stack
 
-After installation, restart Mailcow stack if needed:
-
-```bash
-cd ..
-docker compose down
-docker compose up -d
-```
 
 ## Update
 
@@ -90,7 +85,10 @@ docker compose up -d
 bash update.sh
 ```
 
-This script pulls repository updates (if this folder is a Git clone), pulls Roundcube image updates, and restarts the stack.
+1. Validate required files and running services
+2. Pulls repository updates
+3. Pulls Roundcube image updates
+4. Optional restart Mailcow stack
 
 ## Uninstall
 
@@ -98,10 +96,13 @@ This script pulls repository updates (if this folder is a Git clone), pulls Roun
 bash uninstall.sh
 ```
 
-The uninstall script removes integration settings and can optionally remove Roundcube DB/OAuth entries.
+1. Validate required files and running services
+2. Shuts down Roundcube service
+3. optionally removes Roundcube DB
+4. Removes Roundcube DB password frpm `mailcow.conf` if DB is removed
+5. Update `COMPOSE_FILE` in `mailcow.conf`, removing docker-compose.extension.yml
 
-
-## Webmail Selection (First Visit)
+## Webmail Selection (First Visit) TODO!!!
 
 On the first visit, users can choose which webmail interface they want to use:
 
