@@ -35,6 +35,9 @@ $session_var_pass = 'sogo-sso-pass';
 $is_internal_auth = (($_SERVER['SOGO_AUTH_INTERNAL'] ?? '') === '1');
 
 if ($is_internal_auth && isset($_SERVER['PHP_AUTH_USER'])) {
+  http_response_code(403);
+  exit;
+
   require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/prerequisites.inc.php';
 
   $username = $_SERVER['PHP_AUTH_USER'];
@@ -51,6 +54,8 @@ if ($is_internal_auth && isset($_SERVER['PHP_AUTH_USER'])) {
 }
 // check permissions and redirect for direct GET ?login=xy requests
 if (isset($_GET['login'])) {
+  http_response_code(404);
+  exit;
   // load prerequisites only when required
   require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/prerequisites.inc.php';
   // check if dual_login is active
@@ -97,6 +102,8 @@ if (isset($_GET['login'])) {
 }
 // check for admin-login on sogo GUI requests
 elseif ($is_internal_auth && isset($_SERVER['HTTP_X_ORIGINAL_URI']) && strcasecmp(substr($_SERVER['HTTP_X_ORIGINAL_URI'], 0, 9), "/SOGo/so/") === 0) {
+  http_response_code(409);
+  exit;
   // this is an nginx auth_request call, we check for existing sogo-sso session variables
   require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/vars.inc.php';
   if (file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc/vars.local.inc.php')) {
@@ -126,6 +133,8 @@ elseif ($is_internal_auth && isset($_SERVER['HTTP_X_ORIGINAL_URI']) && strcasecm
   }
 }
 elseif ($is_internal_auth && isset($_SERVER['HTTP_X_ORIGINAL_URI']) && strcasecmp(substr($_SERVER['HTTP_X_ORIGINAL_URI'], 0, 11), "/roundcube/") === 0) {
+  http_response_code(429);
+  exit;
   // this is an nginx auth_request call for Roundcube
   require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/vars.inc.php';
   if (file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc/vars.local.inc.php')) {
@@ -148,7 +157,4 @@ elseif ($is_internal_auth && isset($_SERVER['HTTP_X_ORIGINAL_URI']) && strcasecm
 }
 
 // if no auth conditions matched, return empty headers
-header("X-User: ");
 header("X-Auth: ");
-header("X-Auth-Type: ");
-header("X-Display-Name: ");
