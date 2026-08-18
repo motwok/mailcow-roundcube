@@ -55,20 +55,20 @@ class mailcow extends rcube_plugin {
             $args['action'] = 'login';
             $this->redirect_query = $_SERVER['QUERY_STRING'];
         }
-        elseif( !empty($_SERVER['HTTP_X_AUTH'])) {
-            $xauth = $_SERVER['HTTP_X_AUTH'];
-            $xauth = str_replace('Basic ', '', $xauth);
-            $decoded = base64_decode($xauth);
-            list($user, $pass) = explode(':', $decoded, 2);
-
-            if( !empty($_SESSION['user_id']) && $_SESSION['user_id'] !== $user ) {
-                $args['action'] = 'login';
-                $this->redirect_query = $_SERVER['QUERY_STRING'];
-            }
-            else {
-                $_SESSION['password'] = $rcmail->encrypt($pass);
-            }
-        }
+        #elseif( !empty($_SERVER['HTTP_X_AUTH'])) {
+        #    $xauth = $_SERVER['HTTP_X_AUTH'];
+        #    $xauth = str_replace('Basic ', '', $xauth);
+        #    $decoded = base64_decode($xauth);
+        #    list($user, $pass) = explode(':', $decoded, 2);
+        #
+        #    if( !empty($_SESSION['user_id']) && $_SESSION['user_id'] !== $user ) {
+        #        $args['action'] = 'login';
+        #        $this->redirect_query = $_SERVER['QUERY_STRING'];
+        #    }
+        #    else {
+        #        $_SESSION['password'] = $rcmail->encrypt($pass);
+        #    }
+        #}
 
         return $args;
     }
