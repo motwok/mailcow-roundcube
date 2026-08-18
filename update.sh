@@ -32,6 +32,18 @@ echo ""
 
 cd "$RC_DIR"
 
+if [ -d "$RC_DIR/data/hooks" ]; then
+    echo "Removing hooks from mailcow data directory..."
+
+    find "$RC_DIR/data/hooks" -type f | while read -r SOURCE_PATH; do
+        REL_PATH="${SOURCE_PATH#$RC_DIR/data/hooks/}"
+        TARGET_PATH="$MAILCOW_DIR/data/hooks/$REL_PATH"
+
+        if [ -f "$TARGET_PATH" ]; then
+            rm -f "$TARGET_PATH"
+        fi
+    done
+
 if [ -d "$RC_DIR/.git" ]; then
     echo "Pulling newest extension files from Git..."
     git pull
@@ -48,21 +60,6 @@ chmod +x **/*.sh
 
 cd "$MAILCOW_DIR"
 
-if [ -d "$RC_DIR/data/hooks" ]; then
-    echo "Removing hooks from mailcow data directory..."
-
-    find "$RC_DIR/data/hooks" -type f | while read -r SOURCE_PATH; do
-        REL_PATH="${SOURCE_PATH#$RC_DIR/data/hooks/}"
-        TARGET_PATH="$MAILCOW_DIR/data/hooks/$REL_PATH"
-
-        echo "  Checking: $TARGET_PATH"
-        if [ -f "$TARGET_PATH" ]; then
-            rm -f "$TARGET_PATH"
-            echo "  -> Removed: $TARGET_PATH"
-        else
-            echo "  -> Not found: $TARGET_PATH"
-        fi
-    done
 
     echo "-> Hooks removal completed"
     echo ""
