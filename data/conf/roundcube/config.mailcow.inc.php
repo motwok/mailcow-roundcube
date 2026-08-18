@@ -77,7 +77,7 @@ $config['db_dsnw'] = sprintf('mysqli://%s:%s@localhost/%s?socket=/var/run/mysqld
 // see plugins own config.inc.php file
 // TODO Check if it can be moved to this file
 // remove Roundcube addressbook
-// $config['address_book_type'] = '';
+$config['address_book_type'] = '';
 
 // ----------------------------------
 // MAIL SERVER INBOUND/OUTBOUND AUTH
