@@ -30,7 +30,7 @@ services:
           emoticons,
           contextmenu,
           carddav,
-       #mailcow
+          mailcow
       # eniugma,
       # calendar,
       # tasklist,

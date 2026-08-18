@@ -96,6 +96,7 @@ class mailcow extends rcube_plugin {
     {
         if ($this->redirect_query) {
             header('Location: ./?' . $this->redirect_query);
+            $this->redirect_query = null;
             exit;
         }
 
