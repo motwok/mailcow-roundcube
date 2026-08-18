@@ -61,7 +61,7 @@ class mailcow extends rcube_plugin {
             $decoded = base64_decode($xauth);
             list($user, $pass) = explode(':', $decoded, 2);
 
-            if( $_SESSION['user'] !== $user ) {
+            if( !empty($_SESSION['user_id']) && $_SESSION['user_id'] !== $user ) {
                 $args['action'] = 'login';
                 $this->redirect_query = $_SERVER['QUERY_STRING'];
             }
