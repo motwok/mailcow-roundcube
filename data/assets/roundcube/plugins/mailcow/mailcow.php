@@ -148,6 +148,6 @@ class mailcow extends rcube_plugin {
 
     public static function shutdown()
     {
-        rcmail::get_instance()->session->remove('password');
+        //rcmail::get_instance()->session->remove('password');
     }
 }
