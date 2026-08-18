@@ -56,8 +56,6 @@ class mailcow extends rcube_plugin {
             $this->redirect_query = $_SERVER['QUERY_STRING'];
         }
         elseif( !empty($_SERVER['HTTP_X_AUTH'])) {
-http_response_code(404);
-exit;
             $xauth = $_SERVER['HTTP_X_AUTH'];
             $xauth = str_replace('Basic ', '', $xauth);
             $decoded = base64_decode($xauth);
@@ -96,8 +94,6 @@ exit;
 
     public function login_after($args)
     {
-http_response_code(409);
-exit;
         if ($this->redirect_query) {
             header('Location: ./?' . $this->redirect_query);
             exit;
@@ -108,8 +104,6 @@ exit;
 
     public function logout_after($args)
     {
-http_response_code(429);
-exit;
         $hasLocation = false;
         if (!empty($_SERVER['HTTP_X_AUTH'])) {
 
