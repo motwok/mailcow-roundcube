@@ -51,23 +51,26 @@ class mailcow extends rcube_plugin {
 
         $rcmail->add_shutdown_function(['mailcow', 'shutdown']);
 
-        if (empty($_SESSION['user_id'])) {
-            $args['action'] = 'login';
-            $this->redirect_query = $_SERVER['QUERY_STRING'];
-        }
-        elseif( !empty($_SERVER['HTTP_X_AUTH'])) {
+        // Add Mailcow SSO login support    
+        $dologin = empty($_SESSION['user_id']);
+        $dologin = $dologin || empty($_SERVER['HTTP_X_AUTH']);
+
+        if(!$dologin) {
             $xauth = $_SERVER['HTTP_X_AUTH'];
             $xauth = str_replace('Basic ', '', $xauth);
             $decoded = base64_decode($xauth);
             list($user, $pass) = explode(':', $decoded, 2);
 
             if( $_SESSION['username'] !== $user ) {
-                $args['action'] = 'login';
-                $this->redirect_query = $_SERVER['QUERY_STRING'];
+                $dologin = true;
             }
             else {
                 $_SESSION['password'] = $rcmail->encrypt($pass);
             }
+        }
+        if($dologin) {
+            $args['action'] = 'login';
+            $this->redirect_query = $_SERVER['QUERY_STRING'];
         }
 
         return $args;
