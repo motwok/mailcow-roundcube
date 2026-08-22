@@ -32,6 +32,7 @@ $proxy_ips = [
     getenv('IPV6_NETWORK') . '/64',
 ];
 $config['proxy_whitelist'] = array_filter(array_unique($proxy_ips));
+$config['request_path'] = '/roundcube';
 
 // ----------------------------------
 // Database Connection
@@ -74,8 +75,7 @@ $config['smtp_conn_options'] = [
 // ----------------------------------
 // ManageSieve
 // ----------------------------------
-$config['managesieve_host'] = 'ssl://' . getenv('IPV4_NETWORK') . '.250:4190';
-$config['managesieve_usetls'] = false;
+$config['managesieve_host'] = 'tcp://' . getenv('IPV4_NETWORK') . '.250:4190';
 $config['managedsieve_auth_type'] = 'PLAIN';
 $config['managesieve_conn_options'] = [
     'ssl' => [

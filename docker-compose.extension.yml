@@ -7,11 +7,7 @@ services:
     environment:
       - TZ=${TZ}
       - ROUNDCUBEMAIL_DB_PASSWORD=${ROUNDCUBEMAIL_DB_PASSWORD}
-      #- ROUNDCUBEMAIL_DEFAULT_HOST=ssl://${IPV4_NETWORK:-172.22.1}.250
-      #- ROUNDCUBEMAIL_DEFAULT_PORT=993
-      #- ROUNDCUBEMAIL_SMTP_SERVER=tls://${IPV4_NETWORK:-172.22.1}.253
-      #- ROUNDCUBEMAIL_SMTP_PORT=587
-      - ROUNDCUBEMAIL_REQUEST_PATH=/roundcube
+      #- ROUNDCUBEMAIL_REQUEST_PATH=/roundcube
       - ROUNDCUBEMAIL_INSTALL_PLUGINS=1
       - ROUNDCUBEMAIL_COMPOSER_PLUGINS=johndoh/contextmenu
         # kolab/calendar
@@ -26,15 +22,17 @@ services:
           subscriptions_option,
           vcard_attachments,
           emoticons,
-          contextmenu,
           virtuser_query,
+          contextmenu,
           carddav,
           mailcow
       # eniugma,
       # calendar,
       # tasklist,
       # html5_notifier,
-
+      # TODO!
+      - ALLOW_ADMIN_EMAIL_LOGIN=${ALLOW_ADMIN_EMAIL_LOGIN:-n}
+- 
       - MAILCOW_HOSTNAME=${MAILCOW_HOSTNAME:-mailcow}
       - IPV4_NETWORK=${IPV4_NETWORK:-172.22.1}
       - IPV6_NETWORK=${IPV6_NETWORK:-fd00:dead:beef:cafe::}
