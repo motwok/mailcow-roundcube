@@ -32,7 +32,7 @@ services:
       # html5_notifier,
       # TODO!
       - ALLOW_ADMIN_EMAIL_LOGIN=${ALLOW_ADMIN_EMAIL_LOGIN:-n}
-- 
+ 
       - MAILCOW_HOSTNAME=${MAILCOW_HOSTNAME:-mailcow}
       - IPV4_NETWORK=${IPV4_NETWORK:-172.22.1}
       - IPV6_NETWORK=${IPV6_NETWORK:-fd00:dead:beef:cafe::}
