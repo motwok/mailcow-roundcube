@@ -65,4 +65,3 @@ services:
     volumes:
       - ./mailcow-roundcube/data/web/rc-auth.php:/web/rc-auth.php:ro,Z
       - ./mailcow-roundcube/data/web/SoGoMiddleware.php:/web/SoGoMiddleware.php:ro,Z
-  
