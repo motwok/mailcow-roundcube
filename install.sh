@@ -89,6 +89,8 @@ echo "Creating Roundcube database and user..."
 DB_SETUP_SQL="CREATE DATABASE IF NOT EXISTS roundcube CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; \
 CREATE USER IF NOT EXISTS 'roundcube'@'%' IDENTIFIED BY '$RC_DB_PASS'; \
 GRANT ALL PRIVILEGES ON roundcube.* TO 'roundcube'@'%'; \
+GRANT ALL PRIVILEGES ON mailcow.alias TO 'roundcube'@'%'; \
+GRANT ALL PRIVILEGES ON mailcow.mailbox TO 'roundcube'@'%'; \
 FLUSH PRIVILEGES;"
 
 docker compose exec -T mysql-mailcow mysql -uroot -p${DBROOT} -e "$DB_SETUP_SQL"

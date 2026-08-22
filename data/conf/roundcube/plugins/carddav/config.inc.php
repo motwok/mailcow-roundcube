@@ -1,123 +1,59 @@
 <?php
 
-//// RCMCardDAV Plugin Admin Settings
+$prefs['_GLOBAL']['fixed'] = true;
 
-///////////////////////////////////////////////////////////////////////
-////                                                               ////
-////                                                               ////
-//// SEE doc/ADMIN-SETTINGS.md FOR DOCUMENTATION ON THE PARAMETERS ////
-////                                                               ////
-////                                                               ////
-///////////////////////////////////////////////////////////////////////
-
-
-//// ** GLOBAL SETTINGS
-
-// Disallow users to add custom addressbooks (default: false)
-// $prefs['_GLOBAL']['fixed'] = true;
-
-// When enabled, this option hides the 'CardDAV' section inside Preferences.
 // $prefs['_GLOBAL']['hide_preferences'] = true;
 
-// Scheme for storing the CardDAV passwords, in order from least to best security.
-// Options: plain, base64, des_key, encrypted (default)
 // $prefs['_GLOBAL']['pwstore_scheme'] = 'encrypted';
 
-// Specify minimum loglevels for logging for the plugin and the HTTP client
-// The following are possible: DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL, ALERT, EMERGENCY
-// Defaults to ERROR
 $prefs['_GLOBAL']['loglevel'] = \Psr\Log\LogLevel::WARNING;
 $prefs['_GLOBAL']['loglevel_http'] = \Psr\Log\LogLevel::ERROR;
 
-// Select addressbook from preset to use as Roundcube's collected recipients, collected/trusted senders or default
-// addressbook, corresponding to the roundcube options of the same name available since roundcube 1.5.
-// Note that only writeable addressbooks can be used for this. If you do not want to use these options, simply do not
-// define them
-// If no/several addressbooks match, the roundcube setting will not be changed
-//$prefs['_GLOBAL']['collected_recipients'] = [
-//    // Key of the preset, i.e. whatever is used for <Presetname> in the template below
-//    'preset'  => '<Presetname>',
-//    // The placeholders that can be used in the url attribute can also be used inside these regular rexpressions
-//    // If both matchname and matchurl are given, both need to match for the addressbook to be used
-//    'matchname' => '/collected recipients/i',
-//    'matchurl' => '#http://carddav.example.com/abooks/%u/CollectedRecipients#',
-//];
-//$prefs['_GLOBAL']['collected_senders'] = [
-//    // Key of the preset, i.e. whatever is used for <Presetname> in the template below
-//    'preset'  => '<Presetname>',
-//    // The placeholders that can be used in the url attribute can also be used inside these regular rexpressions
-//    // If both matchname and matchurl are given, both need to match for the addressbook to be used
-//    'matchname' => '/collected recipients/i',
-//    'matchurl' => '#http://carddav.example.com/abooks/%u/CollectedRecipients#',
-//];
-$prefs['_GLOBAL']['default_addressbook'] = [
-    // Key of the preset, i.e. whatever is used for <Presetname> in the template below
+$prefs['_GLOBAL']['collected_recipients'] = [
     'preset'  => 'Personal',
-    // The placeholders that can be used in the url attribute can also be used inside these regular rexpressions
-    // If both matchname and matchurl are given, both need to match for the addressbook to be used
+    'matchurl' => '#http://nginx/SOGo/dav/%u/Contacts/collected/#',
+];
+$prefs['_GLOBAL']['collected_senders'] = [
+    'preset'  => 'Personal',
+    'matchurl' => '#http://nginx/SOGo/dav/%u/Contacts/collected/#',
+];
+$prefs['_GLOBAL']['default_addressbook'] = [
+    'preset'  => 'Personal',
     // 'matchname' => '/collected recipients/i',
-    'matchurl' => '#https://mail.home.emminghaus-it.net/SOGo/dav/%u/Contacts/personal/#',
+    'matchurl' => '#https://nginx/SOGo/dav/%u/Contacts/personal/#',
 ];
 
-//// ** ACCOUNT PRESETS
-
-// Each account preset takes the following form:
-
 $prefs['Personal'] = [
-    // Account attributes
-    // required attributes
     'accountname'         =>  'Personal',
-
-    // required attributes unless passwordless authentication is used (Kerberos)
     'username'     =>  '%u',
     'password'     =>  '%p',
-    // optional attributes
-    // if discovery_url is not specified / null, addressbook discovery is disabled (see extra_addressbooks)
     'discovery_url'          =>  'http://nginx/SOGo/dav/',
-    'rediscover_time' => '01:00:00',
-    // hide the account/addressbooks of this preset from CardDAV settings
+    'rediscover_time' => '00:10:00',
     'hide' => false,
-    // send basic authentication data to the server even before requested by the server
     'preemptive_basic_auth' => true,
     // disable verification of SSL certificate presented by CardDAV server
     'ssl_noverify' => true,
 
-    // Auto-discovered addressbook attributes, and for extra addressbooks if not overridden there
-    // optional attributes
     'name'         => '%N',
     'active'       =>  true,
-    //'readonly'     =>  <true or false>,
+    //'readonly'     =>  true,
     'refresh_time' => '00:00:30',
     'use_categories' => false,
-    // 
-    //// attributes that are fixed (i.e., not editable by the user) and auto-updated for this preset
     // 'fixed'        =>  [ < 0 or more of the other attribute keys > ],
-    // 
-    // only show contacts that have an email address (even in the addressbook view)
-    'require_always_email' => false,
+    // 'require_always_email' => true,
 
     // optional: manually add (non-discoverable) addressbooks
-    //'extra_addressbooks' =>  [
-    //    // first manually-added addressbook
-    //    [
-    //        // required attributes
-    //        'url'          =>  '<Addressbook URL>',
-    //
-    //        // optional attributes - if not specified, values from account are applied
-    //        'name'         => '<Template for name of addressbook>',
-    //        'active'       =>  <true or false>,
-    //        'readonly'     =>  <true or false>,
-    //        'refresh_time' => '<Refresh Time in Hours, Format HH[:MM[:SS]]>',
-    //        'use_categories' => <true or false>,
-    //
-    //        // attributes that are fixed (i.e., not editable by the user) and auto-updated for this preset addressbook
-    //        'fixed'        =>  [ < 0 or more of the other attribute keys > ],
-    //
-    //        // always require these attributes, even for addressbook view
-    //        'require_always' => ['email'],
-    //    ],
-    //    // ... second manually-added addressbook ...
-    //],
+    'extra_addressbooks' =>  [
+        // first manually-added addressbook
+        [
+            'url'          =>  'http://nginx/SOGo/dav/%u/Contacts/collected/',
+            'name'         => '%N',
+            'active'       =>  true,
+            //'readonly'     =>  true,
+            'refresh_time' => '00:00:30',
+            'use_categories' => false,
+            // 'fixed'        =>  [ < 0 or more of the other attribute keys > ],
+            // 'require_always' => ['email'],
+        ],
+    ],
 ];
-
-// vim: ts=4:sw=4:expandtab:fenc=utf8:ff=unix:tw=120:ft=php

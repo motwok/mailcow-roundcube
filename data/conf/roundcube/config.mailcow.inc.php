@@ -26,37 +26,12 @@
 // ----------------------------------
 // Subfolder path for Roundcube is passed as an environment variable to the container. 
 //      ROUNDCUBEMAIL_REQUEST_PATH=/roundcube
-// Trust the reverse proxy IPs (localhost + docker network) to avoid "Untrusted Host" errors
 $proxy_ips = [
     '127.0.0.1',
-    getenv('IPV4_NETWORK'),
-    getenv('IPV6_NETWORK')
+    getenv('IPV4_NETWORK') . '.0/24',
+    getenv('IPV6_NETWORK') . '/64',
 ];
 $config['proxy_whitelist'] = array_filter(array_unique($proxy_ips));
-
-// -------------------------------------------------------------------------
-// do not check certificates for IMAP, SMTP and ManageSieve connections
-// -------------------------------------------------------------------------
-$config['imap_conn_options'] = [
-    'ssl' => [
-        'verify_peer'      => false,
-        'verify_peer_name' => false,
-    ],
-];
-
-$config['managesieve_conn_options'] = [
-    'ssl' => [
-        'verify_peer'      => false,
-        'verify_peer_name' => false,
-    ],
-];
-
-$config['smtp_conn_options'] = [
-    'ssl' => [
-        'verify_peer'      => false,
-        'verify_peer_name' => false,
-    ],
-];
 
 // ----------------------------------
 // Database Connection
@@ -72,65 +47,73 @@ $config['db_dsnw'] = sprintf('mysqli://%s:%s@localhost/%s?socket=/var/run/mysqld
 );
 
 // ----------------------------------
-// carddav Plugin config
+// Imap
 // ----------------------------------
-// see plugins own config.inc.php file
-// TODO Check if it can be moved to this file
-// remove Roundcube addressbook
-$config['address_book_type'] = '';
+$config['imap_host'] = 'ssl://' . getenv('IPV4_NETWORK') . '.250:993';
+$config['imap_auth_type'] = 'PLAIN';
+$config['imap_conn_options'] = [
+    'ssl' => [
+        'verify_peer'      => false,
+        'verify_peer_name' => false,
+    ],
+];
+$config['default_folders'] = ['INBOX', 'Drafts', 'Sent', 'Junk', 'Trash'];
 
 // ----------------------------------
-// MAIL SERVER INBOUND/OUTBOUND AUTH
+// SMTP
 // ----------------------------------
-// $config['imap_auth_type'] = 'PLAIN';
-// $config['smtp_auth_type'] = 'PLAIN';
-// 
-// Enable debug logging for IMAP requests
-// $config['imap_debug'] = true;
-// // $config['smtp_debug'] = true;
-// // 
-// Macht SIvecot selber!
-/// // ----------------------------------
-/// // IMAP FOLDER MANAGEMENT (Dovecot Sync)
-/// // ----------------------------------
-/// // Automatically create default IMAP folders if they do not exist
-/// $config['create_default_folders'] = true;
-/// 
-/// // Define standard names matching Mailcow / Dovecot defaults
-/// $config['drafts_mbox'] = 'Drafts';
-/// $config['junk_mbox']   = 'Junk';
-/// $config['sent_mbox']   = 'Sent';
-/// $config['trash_mbox']  = 'Trash';
-/// 
-/// // Display system folders always at the very top of the folder list
-/// $config['default_folders'] = ['INBOX', 'Drafts', 'Sent', 'Junk', 'Trash'];
+$config['smtp_host'] = 'tls://' . getenv('IPV4_NETWORK') . '.253:587';
+$config['smtp_auth_type'] = 'PLAIN';
+$config['smtp_conn_options'] = [
+    'ssl' => [
+        'verify_peer'      => false,
+        'verify_peer_name' => false,
+    ],
+];
+
+// ----------------------------------
+// ManageSieve
+// ----------------------------------
+$config['managesieve_host'] = 'ssl://' . getenv('IPV4_NETWORK') . '.250:4190';
+$config['managesieve_usetls'] = false;
+$config['managedsieve_auth_type'] = 'PLAIN';
+$config['managesieve_conn_options'] = [
+    'ssl' => [
+        'verify_peer'      => false,
+        'verify_peer_name' => false,
+    ],
+];
+$config['managesieve_default'] = 'roundcube';
+
+// ----------------------------------
+// Virtual User Query
+// ----------------------------------
+$config['virtuser_query'] = [
+    'email' => "
+        SELECT a.address AS email, m.name AS name
+        FROM mailcow.alias a, mailcow.mailbox m
+        WHERE a.goto = m.username AND a.active = '1' AND m.active = '1'	AND m.username = '%u'
+        UNION
+        SELECT CONCAT( m.local_part, '/', d.alias_domain) AS email, m.name AS name
+        FROM mailcow.alias_domain d, mailcow.mailbox m
+        WHERE d.target_domain = m.domain AND d.active = '1' AND m.active = '1'	AND m.username = '%u';
+        ",
+    // 'user' => '',
+    // 'host' => '',
+    // 'alias' => ''
+];
+
+// ----------------------------------
+// Carddav
+// ----------------------------------
+// see plugins/carddav/config.inc.php file
+$config['address_book_type'] = '';
+
 
 
 // ##################################
 // Plugin Configurations
 // ##################################
-
-// ----------------------------------
-// markasjunk
-// ----------------------------------
-// Tell the plugin to pass the mail to a specific driver when clicked
-$config['markasjunk_driver'] = 'cmd_learn';
-// Use Mailcow's internal Dovecot-Sieve command to feed Rspamd spam/ham buckets
-$config['markasjunk_spam_cmd'] = '/usr/bin/rspamc -h rspamd:11334 learn_spam %f';
-$config['markasjunk_ham_cmd']  = '/usr/bin/rspamc -h rspamd:11334 learn_ham %f';
-
-// ----------------------------------
-// managesieve
-// ----------------------------------
-// Use the internal Mailcow Dovecot container for sieve filters
-$config['managesieve_host'] = 'dovecot';
-$config['managesieve_port'] = 4190;
-// $config['managesieve_usetls'] = true;
-
-// TODO What about Login
-
-// Default name for the active sieve script rule set
-$config['managesieve_default'] = 'roundcube';
 
 // ----------------------------------
 // zipdownload
@@ -253,24 +236,6 @@ $config['zipdownload_max_size_per_file'] = 50000000;
 
 
 // ----------------------------------
-// carddav
-// ----------------------------------
-$config['carddav_presets'] = [
-    'SOGo' => [
-        'name'          => 'SOGo Contacts',
-        'discovery_url' => 'http://sogo:20000/SOGo/dav/',
-        'username'      => '%u',
-        'password'      => '%p',
-        'active'        => true,
-        'fixed'         => ['username', 'password']
-    ]
-];
-// TODO What about Login
-// TODO Check Documentation for options
-$config['carddav_default_addressbook'] = 'SOGo Contacts';
-
-
-// ----------------------------------
 // contextmenu
 // ----------------------------------
 // TODO Check Documentation for options
@@ -305,12 +270,3 @@ $config['carddav_default_addressbook'] = 'SOGo Contacts';
 // $config['html5_notifier'] = true;
 // $config['html5_notifier_service_worker'] = true;
 // $config['html5_notifier_service_worker_path'] = '/plugins/html5_notifier/service-worker
-
-// ----------------------------------
-// DEBUG LOGGING (zum Testen)
-// ----------------------------------
-// $config['debug_level'] = 1;
-// $config['log_driver'] = 'stdout';
-// $config['sql_debug'] = false;
-// $config['imap_debug'] = false;
-// $config['smtp_debug'] = false;

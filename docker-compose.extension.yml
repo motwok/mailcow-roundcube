@@ -1,17 +1,16 @@
 # Copyright (c) 2026 Emmo "mo2000" Emminghaus mo2000 at mo2000 dot de
 # SPDX-License-Identifier: AGPL-3.0-or-later
 services:
-
   roundcube:
     image: roundcube/roundcubemail:latest
     hostname: roundcube
     environment:
       - TZ=${TZ}
       - ROUNDCUBEMAIL_DB_PASSWORD=${ROUNDCUBEMAIL_DB_PASSWORD}
-      - ROUNDCUBEMAIL_DEFAULT_HOST=ssl://${IPV4_NETWORK:-172.22.1}.250
-      - ROUNDCUBEMAIL_DEFAULT_PORT=993
-      - ROUNDCUBEMAIL_SMTP_SERVER=tls://${IPV4_NETWORK:-172.22.1}.253
-      - ROUNDCUBEMAIL_SMTP_PORT=587
+      #- ROUNDCUBEMAIL_DEFAULT_HOST=ssl://${IPV4_NETWORK:-172.22.1}.250
+      #- ROUNDCUBEMAIL_DEFAULT_PORT=993
+      #- ROUNDCUBEMAIL_SMTP_SERVER=tls://${IPV4_NETWORK:-172.22.1}.253
+      #- ROUNDCUBEMAIL_SMTP_PORT=587
       - ROUNDCUBEMAIL_REQUEST_PATH=/roundcube
       - ROUNDCUBEMAIL_INSTALL_PLUGINS=1
       - ROUNDCUBEMAIL_COMPOSER_PLUGINS=johndoh/contextmenu
@@ -20,7 +19,6 @@ services:
         # sblaisot/html5_notifier
 
       - ROUNDCUBEMAIL_PLUGINS=
-          markasjunk,
           managesieve,
           zipdownload,
           archive,
@@ -29,6 +27,7 @@ services:
           vcard_attachments,
           emoticons,
           contextmenu,
+          virtuser_query,
           carddav,
           mailcow
       # eniugma,
@@ -37,8 +36,8 @@ services:
       # html5_notifier,
 
       - MAILCOW_HOSTNAME=${MAILCOW_HOSTNAME:-mailcow}
-      - IPV4_NETWORK=${IPV4_NETWORK:-172.22.1}.0/24
-      - IPV6_NETWORK=${IPV6_NETWORK:-fd00:dead:beef:cafe::}/64
+      - IPV4_NETWORK=${IPV4_NETWORK:-172.22.1}
+      - IPV6_NETWORK=${IPV6_NETWORK:-fd00:dead:beef:cafe::}
     dns:
       - ${IPV4_NETWORK:-172.22.1}.254
     volumes:
@@ -68,3 +67,4 @@ services:
     volumes:
       - ./mailcow-roundcube/data/web/rc-auth.php:/web/rc-auth.php:ro,Z
       - ./mailcow-roundcube/data/web/SoGoMiddleware.php:/web/SoGoMiddleware.php:ro,Z
+- 
